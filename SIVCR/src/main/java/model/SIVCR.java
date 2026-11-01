@@ -1,4 +1,4 @@
-package com.tec.sivcr;
+package model;
 
 public class SIVCR {
 
