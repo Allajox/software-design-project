@@ -37,7 +37,6 @@ public class FilterManager {
     }
     */
     public SavedFilter guardarFiltro(String nombre, FilterCriteria c, User u) {
-        // To-do
         SavedFilter filtro = new SavedFilter(nombre, c, u);
         return filtro;
     }

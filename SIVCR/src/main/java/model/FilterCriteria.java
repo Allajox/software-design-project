@@ -51,9 +51,9 @@ public class FilterCriteria {
     @Override
     public String toString() {
         return "FilterCriteria{" + "provincia=" + provincia + ", canton=" + canton + 
-                ", distrito=" + distrito + ", ruta=" + ruta + ", anio=" + anio + 
+                ", distrito=" + distrito + ", ruta=" + ruta + ", \nanio=" + anio + 
                 ", mes=" + mes + ", DiaSemana=" + DiaSemana + ", franja=" + franja + 
-                ", tipoVehiculo=" + tipoVehiculo + ", severidad=" + severidad + 
+                ", tipoVehiculo=" + tipoVehiculo + ", \nseveridad=" + severidad + 
                 ", clima=" + clima + ", calzada=" + calzada + ", edadMin=" + edadMin 
                 + ", edadMax=" + edadMax + ", genero=" + genero + '}';
     }
