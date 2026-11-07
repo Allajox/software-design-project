@@ -1,0 +1,68 @@
+#nombre fijo del proyecto: evita que Docker use "container" (el nombre de la carpeta) como prefijo
+name: sivcr
+
+services:
+  #PostgreSQL
+  postgres:
+    build: ./Postgres
+    image: sivcr-postgres
+    container_name: sivcr_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-sivcr}
+      POSTGRES_USER: ${DB_USER:-sivcr}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sivcr}
+    ports:
+      #puerto del host configurable por si ya hay un PostgreSQL local en el 5432
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks:
+      - sivcr_network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      #los tablespaces deben vivir en un volumen propio: si se recrea el contenedor sin él,
+      #la base de datos queda apuntando a directorios que ya no existen
+      - postgres-tablespaces:/var/lib/postgresql/tablespaces
+      #crea los tablespaces la primera vez que se inicializa la base
+      - ./Init/PostgresInit:/docker-entrypoint-initdb.d:ro
+
+  #Backend (Spring Boot). Flyway crea las tablas al arrancar.
+  backend:
+    build:
+      #Backend/ (donde están pom.xml y src/). Las rutas son relativas a este archivo.
+      context: ..
+      #la ruta del Dockerfile es relativa al contexto
+      dockerfile: Container/Dockerfile
+      args:
+        #carpeta del proyecto Java (la que contiene pom.xml), relativa al contexto.
+        #CAMBIAR por el nombre real de la carpeta.
+        PROYECTO: NombreCarpetaJava
+    image: sivcr-backend
+    container_name: sivcr_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      #dentro de la red de Docker el backend siempre usa el puerto 5432 del servicio postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sivcr}
+      DB_USER: ${DB_USER:-sivcr}
+      DB_PASSWORD: ${DB_PASSWORD:-sivcr}
+    networks:
+      - sivcr_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  sivcr_network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  postgres-tablespaces:
