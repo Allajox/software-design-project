@@ -1,0 +1,78 @@
+<main class="login-page">
+  <section class="login-card">
+    <header class="login-header">
+      <div class="logo" aria-hidden="true">🚦</div>
+      <h1>SIVCR</h1>
+      <p>Sistema de Información y Predictibilidad Vial de Costa Rica</p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="iniciarSesion()" novalidate>
+      @if (error()) {
+        <div class="alert" role="alert">{{ error() }}</div>
+      }
+
+      <div class="field">
+        <label for="correo">Correo electrónico</label>
+        <input
+          id="correo"
+          type="email"
+          formControlName="correo"
+          autocomplete="username"
+          placeholder="usuario@institucion.go.cr"
+          [class.invalid]="correo.invalid && correo.touched"
+        />
+        @if (correo.touched && correo.errors) {
+          <small class="error-text">
+            @if (correo.errors['required']) {
+              El correo es obligatorio.
+            } @else if (correo.errors['email']) {
+              Ingrese un correo válido.
+            }
+          </small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="contrasena">Contraseña</label>
+        <div class="password-wrapper">
+          <input
+            id="contrasena"
+            [type]="mostrarClave() ? 'text' : 'password'"
+            formControlName="contrasena"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            [class.invalid]="contrasena.invalid && contrasena.touched"
+          />
+          <button type="button" class="toggle" (click)="alternarClave()"
+                  [attr.aria-label]="mostrarClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+            {{ mostrarClave() ? 'Ocultar' : 'Ver' }}
+          </button>
+        </div>
+        @if (contrasena.touched && contrasena.errors) {
+          <small class="error-text">
+            @if (contrasena.errors['required']) {
+              La contraseña es obligatoria.
+            } @else if (contrasena.errors['minlength']) {
+              Debe tener al menos 6 caracteres.
+            }
+          </small>
+        }
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="cargando()">
+        @if (cargando()) { Ingresando... } @else { Iniciar sesión }
+      </button>
+    </form>
+
+    @if (modoDemo) {
+      <aside class="demo-box">
+        <strong>Usuarios de prueba</strong>
+        <ul>
+          <li>admin&#64;sivcr.go.cr / Admin123</li>
+          <li>analista&#64;sivcr.go.cr / Analista123</li>
+          <li>consultor&#64;sivcr.go.cr / Consulta123</li>
+        </ul>
+      </aside>
+    }
+  </section>
+</main>
