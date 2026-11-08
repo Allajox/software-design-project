@@ -79,12 +79,11 @@ CREATE INDEX idx_query_history_usuario_fecha ON query_history (usuario_id, fecha
 -- Una sola fila, garantizada por el CHECK (id = 1).
 CREATE TABLE system_config (
     id              SMALLINT     NOT NULL DEFAULT 1,
-    -- pesos del ISS (w1..w4 del diagrama; el prototipo los muestra como fallecidos,
-    -- heridos graves, heridos leves y solo daños materiales)
+    -- pesos del ISS, según la definición formal del KPI en la especificación (sección 3.4.2):
+    -- W1 fallecidos, W2 heridos graves, W3 heridos leves / daños materiales
     w_fallecido     NUMERIC(8,2) NOT NULL DEFAULT 10,
     w_herido_grave  NUMERIC(8,2) NOT NULL DEFAULT 5,
-    w_herido_leve   NUMERIC(8,2) NOT NULL DEFAULT 2,
-    w_solo_danos    NUMERIC(8,2) NOT NULL DEFAULT 1,
+    w_herido_leve   NUMERIC(8,2) NOT NULL DEFAULT 1,
     -- qué valores de clima / calzada cuentan como "condición adversa" (HU 16)
     clima_adverso   TEXT[]       NOT NULL DEFAULT '{}',
     calzada_adversa TEXT[]       NOT NULL DEFAULT '{}',
@@ -92,8 +91,7 @@ CREATE TABLE system_config (
     actualizado_por BIGINT,
     CONSTRAINT pk_system_config         PRIMARY KEY (id) USING INDEX TABLESPACE ${ts_index},
     CONSTRAINT ck_system_config_unica   CHECK (id = 1),
-    CONSTRAINT ck_system_config_pesos   CHECK (w_fallecido >= 0 AND w_herido_grave >= 0
-                                               AND w_herido_leve >= 0 AND w_solo_danos >= 0),
+    CONSTRAINT ck_system_config_pesos   CHECK (w_fallecido >= 0 AND w_herido_grave >= 0 AND w_herido_leve >= 0),
     CONSTRAINT fk_system_config_usuario FOREIGN KEY (actualizado_por) REFERENCES app_user (id)
 ) TABLESPACE ${ts_admin};
 
