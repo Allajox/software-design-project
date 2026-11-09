@@ -1,0 +1,78 @@
+:host { display: block; }
+
+.bloque { margin-top: 1.5rem; }
+.bloque-cab { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; }
+h2 { margin: 0; font-size: 1.1rem; color: var(--texto); }
+.contador {
+  display: inline-block;
+  min-width: 1.6em;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--azul);
+  background: #e8f0fc;
+  border-radius: 999px;
+}
+
+.enlace { padding: 4px 6px; font: inherit; font-size: 0.84rem; color: var(--azul-claro); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.enlace:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
+
+.vacio {
+  padding: 1.4rem 1.2rem;
+  color: var(--gris);
+  background: #fff;
+  border: 1px dashed var(--borde);
+  border-radius: 12px;
+
+  p { margin: 0; }
+  a { color: var(--azul-claro); }
+}
+
+.lista { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+
+.consulta {
+  padding: 0.9rem 1.1rem;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+.cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 1rem; }
+h3 { margin: 0; font-size: 1rem; color: var(--azul); }
+.meta { margin: 0; font-size: 0.82rem; color: var(--gris); }
+.meta strong { color: var(--texto); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.6rem 0 0; padding: 0; list-style: none; }
+.chips li { padding: 3px 10px; font-size: 0.78rem; color: var(--azul); background: #e8f0fc; border-radius: 999px; }
+
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.8rem; }
+.acciones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--azul-claro);
+  background: #fff;
+  border: 1px solid var(--azul-claro);
+  border-radius: 8px;
+  cursor: pointer;
+
+  app-icon { width: 15px; height: 15px; }
+  &:hover { background: #eef4fd; }
+  &:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
+}
+.acciones .primario { color: #fff; background: var(--azul-claro); }
+.acciones .primario:hover { background: var(--azul); border-color: var(--azul); }
+.acciones .peligro { color: var(--rojo); border-color: #e3b4b4; margin-left: auto; }
+.acciones .peligro:hover { background: #fdeeee; }
+
+/* Botones de la ventana de confirmación */
+.mensaje { margin: 0.4rem 0 0; color: var(--texto); }
+.m-secundario, .m-peligro { padding: 8px 16px; font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer; }
+.m-secundario { color: var(--gris); background: #fff; border: 1px solid var(--borde); }
+.m-peligro { color: #fff; background: var(--rojo); border: 1px solid var(--rojo); }
+.m-secundario:focus-visible, .m-peligro:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }

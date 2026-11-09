@@ -1,0 +1,113 @@
+<section class="pagina">
+  <h1>Historial de consultas</h1>
+  <p class="subtitulo">
+    Guarde combinaciones de filtros para reutilizarlas. El sistema también anota solo las consultas
+    que usted deja quietas un momento.
+  </p>
+
+  <!-- ===== Guardadas ===== -->
+  <section class="bloque" aria-labelledby="titulo-guardadas">
+    <header class="bloque-cab">
+      <h2 id="titulo-guardadas">Consultas guardadas <span class="contador">{{ guardadas().length }}</span></h2>
+    </header>
+
+    @if (guardadas().length === 0) {
+      <div class="vacio">
+        <p>
+          Aún no hay consultas guardadas. En el <a routerLink="/dashboard">Dashboard</a> o el
+          <a routerLink="/registros">Explorador de registros</a>, aplique filtros y use
+          <strong>Guardar consulta</strong>.
+        </p>
+      </div>
+    } @else {
+      <ul class="lista">
+        @for (e of guardadas(); track e.id) {
+          <li class="consulta">
+            <div class="cabecera">
+              <h3>{{ e.titulo }}</h3>
+              <p class="meta">{{ e.fecha }} · hoy devuelve <strong>{{ e.resultados }}</strong></p>
+            </div>
+            <ul class="chips" aria-label="Filtros de la consulta">
+              @for (f of e.resumen; track f) { <li>{{ f }}</li> }
+            </ul>
+            <div class="acciones">
+              <button type="button" class="primario" (click)="aplicar(e, '/dashboard')">
+                <app-icon name="aplicar" /> Aplicar en el dashboard
+              </button>
+              <button type="button" (click)="aplicar(e, '/registros')">Ver registros</button>
+              <button type="button" (click)="pedirRenombrar(e)" [attr.aria-label]="'Renombrar ' + e.titulo">
+                <app-icon name="editar" /> Renombrar
+              </button>
+              <button type="button" class="peligro" (click)="pedirEliminarGuardada(e)" [attr.aria-label]="'Eliminar ' + e.titulo">
+                <app-icon name="papelera" /> Eliminar
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- ===== Recientes ===== -->
+  <section class="bloque" aria-labelledby="titulo-recientes">
+    <header class="bloque-cab">
+      <h2 id="titulo-recientes">Historial reciente <span class="contador">{{ recientes().length }}</span></h2>
+      @if (recientes().length > 0) {
+        <button type="button" class="enlace" (click)="pedirLimpiarRecientes()">Limpiar historial</button>
+      }
+    </header>
+
+    @if (recientes().length === 0) {
+      <div class="vacio">
+        <p>El historial está vacío. Aparecerán aquí las combinaciones de filtros que use (se anotan solas).</p>
+      </div>
+    } @else {
+      <ul class="lista">
+        @for (e of recientes(); track e.id) {
+          <li class="consulta">
+            <div class="cabecera">
+              <h3>{{ e.titulo }}</h3>
+              <p class="meta">hoy devuelve <strong>{{ e.resultados }}</strong></p>
+            </div>
+            <ul class="chips" aria-label="Filtros de la consulta">
+              @for (f of e.resumen; track f) { <li>{{ f }}</li> }
+            </ul>
+            <div class="acciones">
+              <button type="button" class="primario" (click)="aplicar(e, '/dashboard')">
+                <app-icon name="aplicar" /> Aplicar en el dashboard
+              </button>
+              <button type="button" (click)="aplicar(e, '/registros')">Ver registros</button>
+              <button type="button" (click)="pedirGuardar(e)">
+                <app-icon name="guardar" /> Guardar con nombre
+              </button>
+              <button type="button" class="peligro" (click)="pedirEliminarReciente(e)" aria-label="Quitar esta consulta del historial">
+                <app-icon name="papelera" /> Quitar
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</section>
+
+<!-- Nombre para guardar / renombrar -->
+<app-dialogo-nombre-consulta
+  [abierto]="dialogoNombre() !== null"
+  [titulo]="dialogoNombre()?.tipo === 'renombrar' ? 'Renombrar consulta' : 'Guardar consulta'"
+  [textoBoton]="dialogoNombre()?.tipo === 'renombrar' ? 'Renombrar' : 'Guardar'"
+  [nombreInicial]="nombreInicial()"
+  [filtros]="filtrosDelDialogo()"
+  [idExcluido]="idExcluido()"
+  (confirmar)="confirmarNombre($event)"
+  (cerrar)="dialogoNombre.set(null)"
+/>
+
+<!-- Confirmación de eliminar -->
+<app-modal [abierto]="confirmacion() !== null" [titulo]="confirmacion()?.titulo ?? ''" (cerrar)="confirmacion.set(null)">
+  <p class="mensaje">{{ confirmacion()?.mensaje }}</p>
+  <div acciones>
+    <button type="button" class="m-secundario" (click)="confirmacion.set(null)">Cancelar</button>
+    <button type="button" class="m-peligro" (click)="ejecutarConfirmacion()">{{ confirmacion()?.boton }}</button>
+  </div>
+</app-modal>

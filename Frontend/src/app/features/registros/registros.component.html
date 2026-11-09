@@ -1,0 +1,140 @@
+<section class="pagina">
+  <h1>Explorador de registros</h1>
+  <p class="subtitulo">
+    Consulte, ordene y exporte los siniestros que cumplen los filtros. Los filtros son los mismos del dashboard.
+  </p>
+
+  <app-panel-filtros
+    [mostrando]="filtrados().length"
+    [total]="est.totalRegistros()"
+    [inicialmenteAbierto]="false"
+  />
+
+  <section class="tarjeta" aria-label="Tabla de siniestros">
+    <!-- Barra de herramientas -->
+    <div class="barra">
+      <div class="grupo">
+        <span class="etiqueta-barra">Exportar {{ fmtEntero(filtrados().length) }} registros</span>
+        <button type="button" class="btn" [disabled]="exportando() !== null" (click)="exportar('csv')">
+          <app-icon name="descargar" /> {{ exportando() === 'csv' ? 'Generando…' : 'CSV' }}
+        </button>
+        <button type="button" class="btn" [disabled]="exportando() !== null" (click)="exportar('xlsx')">
+          <app-icon name="descargar" /> {{ exportando() === 'xlsx' ? 'Generando…' : 'Excel' }}
+        </button>
+        <button type="button" class="btn" [disabled]="exportando() !== null" (click)="exportar('pdf')">
+          <app-icon name="descargar" /> {{ exportando() === 'pdf' ? 'Generando…' : 'PDF' }}
+        </button>
+      </div>
+
+      <details class="columnas" #menuColumnas>
+        <summary class="btn">
+          <app-icon name="columnas" /> Columnas ({{ columnasMostradas().length }}/{{ columnas.length }})
+        </summary>
+        <div class="lista-columnas" role="group" aria-label="Columnas visibles">
+          @for (c of columnas; track c.clave) {
+            <label>
+              <input
+                type="checkbox"
+                [checked]="columnasVisibles().has(c.clave)"
+                (change)="alternarColumna(c.clave)"
+              />
+              {{ c.titulo }}
+            </label>
+          }
+        </div>
+      </details>
+    </div>
+
+    @if (filtrados().length > maxFilasPdf) {
+      <p class="nota-pdf">El PDF incluye hasta {{ fmtEntero(maxFilasPdf) }} registros; CSV y Excel incluyen todos.</p>
+    }
+
+    <!-- Criterios de orden -->
+    <div class="orden" aria-label="Orden de la tabla">
+      <span class="etiqueta-barra">Orden:</span>
+      @for (c of criterios(); track c.clave; let i = $index) {
+        <span class="chip-orden">
+          <button type="button" class="chip-dir" (click)="invertirCriterio(c.clave)"
+                  [attr.aria-label]="'Cambiar dirección de ' + tituloDe(c.clave) + ', ahora ' + (c.direccion === 'asc' ? 'ascendente' : 'descendente')">
+            @if (criterios().length > 1) { <b>{{ i + 1 }}.</b> }
+            {{ tituloDe(c.clave) }} {{ c.direccion === 'asc' ? '↑' : '↓' }}
+          </button>
+          <button type="button" class="chip-quitar" (click)="quitarCriterio(c.clave)"
+                  [attr.aria-label]="'Quitar orden por ' + tituloDe(c.clave)">
+            <app-icon name="cerrar" />
+          </button>
+        </span>
+      } @empty {
+        <span class="sin-orden">sin orden (por fecha de registro)</span>
+      }
+
+      @if (columnasDisponiblesParaOrden().length > 0) {
+        <select class="agregar" aria-label="Añadir criterio de orden" (change)="agregarCriterio($event)">
+          <option value="">+ Añadir criterio…</option>
+          @for (c of columnasDisponiblesParaOrden(); track c.clave) {
+            <option [value]="c.clave">{{ c.titulo }}</option>
+          }
+        </select>
+      }
+      @if (!esOrdenInicial()) {
+        <button type="button" class="enlace" (click)="restablecerOrden()">Restablecer orden</button>
+      }
+    </div>
+
+    @if (filtrados().length === 0) {
+      <div class="vacio" role="status">
+        <h2>Ningún siniestro cumple estos filtros</h2>
+        <p>Pruebe quitando alguno de los filtros para ver resultados.</p>
+        <button type="button" class="btn-principal" (click)="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    } @else {
+      <p class="ayuda">Clic en un encabezado para ordenar. Mayús + clic añade un segundo criterio.</p>
+
+      <div class="contenedor" role="region" aria-label="Tabla de siniestros, con desplazamiento" tabindex="0">
+        <table>
+          <caption class="solo-lectores">
+            Siniestros viales, página {{ paginaEfectiva() }} de {{ cantidadPaginas() }}
+          </caption>
+          <thead>
+            <tr>
+              @for (c of columnasMostradas(); track c.clave) {
+                <th scope="col" [attr.aria-sort]="ariaSort(c.clave)" [class.der]="c.alinear === 'der'">
+                  <button type="button" class="orden-btn" (click)="ordenarPor(c.clave, $event)"
+                          title="Clic: ordenar · Mayús + clic: añadir criterio">
+                    <span>{{ c.titulo }}</span>
+                    <span class="flecha" aria-hidden="true">
+                      {{ direccionDe(c.clave) === 'asc' ? '↑' : direccionDe(c.clave) === 'desc' ? '↓' : '' }}<sup>{{ prioridad(c.clave) }}</sup>
+                    </span>
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filas(); track s.id) {
+              <tr>
+                @for (c of columnasMostradas(); track c.clave) {
+                  @if (c.clave === 'severidad') {
+                    <td>
+                      <span class="sev"><i [style.background]="colorSeveridad(c.texto(s))"></i>{{ c.texto(s) }}</span>
+                    </td>
+                  } @else {
+                    <td [class.der]="c.alinear === 'der'">{{ c.texto(s) }}</td>
+                  }
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-paginador
+        [pagina]="paginaEfectiva()"
+        [tamanio]="tamanio()"
+        [total]="filtrados().length"
+        (cambiarPagina)="pagina.set($event)"
+        (cambiarTamanio)="cambiarTamanio($event)"
+      />
+    }
+  </section>
+</section>

@@ -1,0 +1,83 @@
+<div class="shell" [class.colapsado]="colapsado()" [class.movil-abierto]="movilAbierto()">
+
+  <!-- ========== MENÚ LATERAL ========== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="marca">
+        <span class="marca-logo" aria-hidden="true">🚦</span>
+        <span class="marca-texto">SIVCR</span>
+      </span>
+
+      <button type="button" class="btn-icono btn-colapsar" (click)="alternarColapso()"
+              [attr.aria-label]="colapsado() ? 'Expandir menú' : 'Contraer menú'"
+              [attr.aria-expanded]="!colapsado()">
+        <app-icon name="chevrones" />
+      </button>
+
+      <button type="button" class="btn-icono btn-cerrar-movil" (click)="cerrarMovil()" aria-label="Cerrar menú">
+        <app-icon name="cerrar" />
+      </button>
+    </div>
+
+    <nav class="menu" aria-label="Navegación principal">
+      @for (seccion of secciones(); track seccion.titulo) {
+        <p class="menu-seccion">{{ seccion.titulo }}</p>
+        <ul>
+          @for (item of seccion.items; track item.ruta) {
+            <li>
+              <a class="menu-item"
+                 [routerLink]="'/' + item.ruta"
+                 routerLinkActive="activo"
+                 ariaCurrentWhenActive="page"
+                 [attr.title]="colapsado() ? item.etiqueta : null"
+                 (click)="cerrarMovil()">
+                <app-icon [name]="item.icono" />
+                <span class="menu-etiqueta">{{ item.etiqueta }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </nav>
+  </aside>
+
+  <!-- Fondo oscuro que cierra el cajón en móvil -->
+  <div class="backdrop" (click)="cerrarMovil()"></div>
+
+  <!-- ========== ÁREA PRINCIPAL ========== -->
+  <div class="principal">
+    <header class="topbar">
+      <button type="button" class="btn-icono btn-hamburguesa" (click)="abrirMovil()" aria-label="Abrir menú">
+        <app-icon name="menu" />
+      </button>
+
+      <nav class="migas" aria-label="Ubicación actual">
+        @if (ubicacion(); as u) {
+          <span>{{ u.seccion }}</span>
+          <span class="migas-sep" aria-hidden="true">›</span>
+          <strong>{{ u.etiqueta }}</strong>
+        }
+      </nav>
+
+      <div class="usuario">
+        @if (usuario(); as u) {
+          <div class="avatar" aria-hidden="true">{{ iniciales() }}</div>
+          <div class="usuario-datos">
+            <span class="usuario-nombre">{{ u.nombre }}</span>
+            <span class="rol" [attr.data-rol]="u.rol">{{ etiquetaRol() }}</span>
+          </div>
+        }
+        <button type="button" class="btn-salir" (click)="cerrarSesion()">
+          <app-icon name="salir" />
+          <span>Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="contenido">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<app-avisos />

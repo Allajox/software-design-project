@@ -1,0 +1,122 @@
+<section class="panel" aria-label="Filtros del dashboard">
+  <header class="cabecera">
+    <button
+      type="button"
+      class="titulo"
+      [attr.aria-expanded]="abierto()"
+      aria-controls="cuerpo-filtros"
+      (click)="abierto.set(!abierto())"
+    >
+      <app-icon name="filtros" />
+      <span>Filtros</span>
+      @if (srv.activos() > 0) {
+        <span class="insignia">{{ srv.activos() }} {{ srv.activos() === 1 ? 'activo' : 'activos' }}</span>
+      }
+      <span class="flecha" [class.girada]="!abierto()"><app-icon name="chevron-abajo" /></span>
+    </button>
+
+    <p class="resumen" aria-live="polite">{{ resumen() }}</p>
+
+    @if (puedeGuardar()) {
+      <button type="button" class="guardar" [disabled]="srv.activos() === 0" (click)="dialogoGuardar.set(true)">
+        <app-icon name="guardar" /> Guardar consulta
+      </button>
+    }
+    <button type="button" class="limpiar" [disabled]="srv.activos() === 0" (click)="srv.limpiar()">
+      Limpiar filtros
+    </button>
+  </header>
+
+  @if (abierto()) {
+    <div id="cuerpo-filtros" class="cuerpo">
+      <!-- Columna 1: dónde y a quién -->
+      <div class="columna">
+        <div class="bloque">
+          <h2>Ubicación</h2>
+          <div class="selects">
+            <label>
+              <span>Provincia</span>
+              <select (change)="cambiarSelect('provincia', $event)">
+                <option value="" [selected]="!f().provincia">Todas</option>
+                @for (p of provincias; track p) {
+                  <option [value]="p" [selected]="p === f().provincia">{{ p }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>Cantón</span>
+              <select [disabled]="!f().provincia" (change)="cambiarSelect('canton', $event)">
+                <option value="" [selected]="!f().canton">Todos</option>
+                @for (c of srv.cantones(); track c) {
+                  <option [value]="c" [selected]="c === f().canton">{{ c }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>Distrito</span>
+              <select [disabled]="!f().canton" (change)="cambiarSelect('distrito', $event)">
+                <option value="" [selected]="!f().distrito">Todos</option>
+                @for (d of srv.distritos(); track d) {
+                  <option [value]="d" [selected]="d === f().distrito">{{ d }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>Ruta nacional</span>
+              <select (change)="cambiarSelect('ruta', $event)">
+                <option value="" [selected]="!f().ruta">Todas</option>
+                @for (r of rutas; track r) {
+                  <option [value]="r" [selected]="r === f().ruta">{{ r }}</option>
+                }
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="bloque">
+          <h2>Personas</h2>
+          <div class="chips-grupo">
+            <app-chips-filtro etiqueta="Rango de edad" [opciones]="opcEdades" [seleccionados]="f().edades" (alternar)="alternar('edades', $event)" />
+            <app-chips-filtro etiqueta="Género" [opciones]="opcGeneros" [seleccionados]="f().generos" (alternar)="alternar('generos', $event)" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 2: cuándo -->
+      <div class="columna">
+        <div class="bloque">
+          <h2>Temporalidad</h2>
+          <div class="chips-grupo">
+            <app-chips-filtro etiqueta="Año" [opciones]="opcAnios" [seleccionados]="f().anios" (alternar)="alternar('anios', $event)" />
+            <app-chips-filtro etiqueta="Mes" [opciones]="opcMeses" [seleccionados]="f().meses" (alternar)="alternar('meses', $event)" />
+            <app-chips-filtro etiqueta="Día de la semana" [opciones]="opcDias" [seleccionados]="f().dias" (alternar)="alternar('dias', $event)" />
+            <app-chips-filtro etiqueta="Franja horaria" [opciones]="opcFranjas" [seleccionados]="f().franjas" (alternar)="alternar('franjas', $event)" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 3: qué pasó -->
+      <div class="columna">
+        <div class="bloque">
+          <h2>Clasificación</h2>
+          <div class="chips-grupo">
+            <app-chips-filtro etiqueta="Tipo de vehículo" [opciones]="opcVehiculos" [seleccionados]="f().vehiculos" (alternar)="alternar('vehiculos', $event)" />
+            <app-chips-filtro etiqueta="Severidad" [opciones]="opcSeveridades" [seleccionados]="f().severidades" (alternar)="alternar('severidades', $event)" />
+            <app-chips-filtro etiqueta="Clima" [opciones]="opcClimas" [seleccionados]="f().climas" (alternar)="alternar('climas', $event)" />
+            <app-chips-filtro etiqueta="Estado de la calzada" [opciones]="opcCalzadas" [seleccionados]="f().calzadas" (alternar)="alternar('calzadas', $event)" />
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>
+
+<app-dialogo-nombre-consulta
+  [abierto]="dialogoGuardar()"
+  [filtros]="f()"
+  (confirmar)="guardarConsulta($event)"
+  (cerrar)="dialogoGuardar.set(false)"
+/>

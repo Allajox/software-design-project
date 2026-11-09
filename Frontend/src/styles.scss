@@ -1,7 +1,74 @@
+/* Paleta del SIVCR: se usa desde cualquier componente con var(--nombre) */
+:root {
+  --azul: #0b3d91;
+  --azul-claro: #1e6bd6;
+  --fondo: #f3f6fb;
+  --borde: #d3dae3;
+  --texto: #1f2933;
+  --gris: #5f6b7a;
+  --rojo: #c62828;
+
+  /* Gráficos (ver features/dashboard/paleta.ts) */
+  --tinta: #0b0b0b;
+  --tinta-2: #52514e;
+  --tinta-3: #6b6a65;
+  --rejilla: #e1e0d9;
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: #1f2933;
+  color: var(--texto);
 }
+
+/* Encabezado estándar de cada pantalla */
+.pagina h1 { margin: 0 0 0.25rem; font-size: 1.5rem; color: var(--azul); }
+.pagina .subtitulo { margin: 0 0 1.5rem; color: var(--gris); }
+
+/*
+ * Tooltip de los gráficos: cualquier elemento con data-tip="texto" muestra una burbuja
+ * al pasar el mouse O al enfocarlo con el teclado (así no depende solo del mouse).
+ */
+[data-tip] { position: relative; }
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: 260px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #1b2430;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  white-space: pre-line;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+/* Para filas anchas el globo se ancla a la izquierda, no al centro */
+[data-tip][data-tip-izq]:hover::after,
+[data-tip][data-tip-izq]:focus-visible::after {
+  left: 12px;
+  transform: none;
+}
+/* ...y a la derecha para los que están en el borde derecho */
+[data-tip][data-tip-der]:hover::after,
+[data-tip][data-tip-der]:focus-visible::after {
+  left: auto;
+  right: 12px;
+  transform: none;
+}
+
+/* Texto solo para lectores de pantalla (títulos de tablas, etiquetas de grupos) */
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
