@@ -1,7 +1,13 @@
 package enums;
 
 public enum RoadStatus {
+    BUENA,
     SECA,
     MOJADA,
-    DERRUMBE
+    DERRUMBE,
+    RESBALADIZA,
+    HUECOS,
+    CONSTRUCCION_O_REPARACION,
+    OTROS,
+    HUNDIMIENTOS
 }

@@ -1,8 +1,9 @@
 package enums;
 
 public enum Climate {
-    DESPEJADO,
     NUBLADO,
     LLUVIA,
-    NIEBLA
+    NEBLINA,
+    BUEN_TIEMPO,
+    LLUVIA_CON_NEBLINA
 }
