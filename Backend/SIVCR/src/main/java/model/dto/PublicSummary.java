@@ -1,3 +1,4 @@
+// Data Transfer Object
 package model.dto;
 
 import java.util.List;

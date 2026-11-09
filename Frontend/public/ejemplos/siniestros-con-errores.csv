@@ -1,0 +1,62 @@
+﻿Fecha;Franja;Provincia;Cantón;Distrito;Ruta;Km;Vehículo;Severidad;Fallecidos;Heridos graves;Heridos leves;Clima;Calzada;Señalización;Edad;Género;Condición;Respuesta (min)
+2024-03-19;Noche;Guanacaste;Santa Cruz;Bolsón;Ruta 1;37;Particular;Leve;0;0;1;Nublado;Seca;Sí;18-25;Masculino;Conductor;23
+2024-03-23;Tarde;San José;Goicoechea;Ipís;Ruta 39;12;Particular;Grave;0;1;0;Lluvia;Húmeda;No;18-25;Femenino;Peatón;15
+31/02/2024;Mañana;Guanacaste;Liberia;Liberia;Ruta 18;41;Motocicleta;Leve;0;0;1;Despejado;Seca;Sí;26-40;Masculino;Acompañante;23
+ayer;Noche;Alajuela;Naranjo;Naranjo;Ruta 1;25;Motocicleta;Fallecido;1;2;0;Lluvia fuerte;Húmeda;Sí;41-60;Masculino;Conductor;21
+2021-06-10;Mañana;San José;San José;Carmen;Ruta 39;21;Particular;Grave;0;1;1;Lluvia;Seca;Sí;>60;Masculino;Conductor;17
+;Tarde;Puntarenas;Puntarenas;Puntarenas;Ruta 1;15;Particular;Leve;0;0;2;Lluvia;Seca;No;>60;Masculino;Conductor;85
+2024-04-08;Mañana;Heredia;Santo Domingo;Santo Tomás;Ruta 3;19;Particular;Leve;0;0;1;Despejado;Seca;Sí;26-40;Masculino;Conductor;25
+2024-04-10;Noche;Narnia;San José;Uruca;Ruta 27;39;Particular;Leve;0;0;1;Despejado;Seca;Sí;26-40;Masculino;Conductor;18
+2024-04-11;Tarde;San José;Desamparados;Desamparados;Ruta 27;53;Transporte público;Leve;0;0;1;Lluvía fuerta;Seca;Sí;26-40;Masculino;Acompañante;11
+2024-04-13;Mañana;Alajuela;Alajuela;San José;Ruta 8;88;Particular;Leve;0;0;1;Despejado;Seca;Sí;26-40;Masculino;Conductor;21
+2024-04-13;Mañana;San José;San José;Uruca;Ruta 27;doce;Motocicleta;Leve;0;0;1;Nublado;Seca;Sí;18-25;Masculino;Conductor;11
+2024-04-17;Madrugada;Heredia;Barva;Barva;Ruta 5;950;Carga pesada;Fallecido;1;1;2;Despejado;Seca;Sí;41-60;Masculino;Conductor;36
+2024-04-25;Noche;San José;Escazú;San Antonio;Ruta 2;109;Particular;Leve;1,5;0;2;Despejado;Seca;No;18-25;Masculino;Conductor;18
+2024-04-27;Madrugada;Puntarenas;Garabito;Tárcoles;Ruta 34;29;Transporte público;Grave;0;1;2;Nublado;Seca;Sí;15;Masculino;Peatón;55
+2024-04-27;Tarde;Alajuela;Alajuela;San José;Ruta 1;72;Particular;Leve;0;0;2;Nublado;Seca;tal vez;41-60;Femenino;Conductor;32
+2024-04-29;Madrugada;San José;Escazú;San Antonio;Ruta 27;22;Motocicleta;Leve;0;0;1;Neblina;Húmeda;Sí;41-60;Masculino;Conductor;3000
+2024-05-05;Tarde;Limón;Pococí;Guápiles;Ruta 32;43;Motocicleta;Fallecido;0;0;1;Lluvia fuerte;Derrumbe;Sí;26-40;Masculino;Conductor;54
+2024-05-07;Mañana;Cartago;Tilarán;Tres Ríos;Ruta 10;45;Motocicleta;Fallecido;1;0;1;Lluvia;Húmeda;Sí;41-60;Femenino;Conductor;48
+2024-05-08;Mañana;Alajuela;San Carlos;Quesada;Ruta 1;21;Particular;Leve;0;0;2;Lluvia fuerte;Derrumbe;Sí;26-40;Femenino;Conductor;240
+2024-05-10;Noche;Puntarenas;Esparza;Espíritu Santo;Ruta 27;40;Motocicleta;Fallecido;1;1;0;Lluvia;Derrumbe;Sí;26-40;Masculino;Conductor;31
+2024-05-10;Noche;Puntarenas;Esparza;Espíritu Santo;Ruta 27;40;Motocicleta;Fallecido;1;1;0;Lluvia;Derrumbe;Sí;26-40;Masculino;Conductor;31
+2024-05-18;Tarde;Guanacaste;Santa Cruz;Bolsón;Ruta 1;95;Particular;Leve;0;0;1;Lluvia;Húmeda;Sí;18-25;Femenino;Acompañante;21
+2024-05-18;Tarde;Guanacaste;Santa Cruz;Bolsón;Ruta 1;95;Particular;Leve;0;0;1;Lluvia;Húmeda;Sí;18-25;Femenino;Acompañante;21
+2024-05-21;Noche;Cartago;Paraíso;Cachí;Ruta 2;107;Particular;Grave;0;1;0;Nublado;Seca;Sí;>60;Masculino;Acompañante;17
+2024-05-22;Madrugada;Alajuela;Alajuela;Turrúcares;Ruta 27;30;Particular;Leve;0;0;2;Lluvia;Húmeda;Sí;26-40;Femenino;Conductor;26
+2024-05-25;Tarde;Puntarenas;Golfito;Golfito;Ruta 1;65;Particular;Grave;0;2;0;Despejado;Seca;Sí;18-25;Masculino;Acompañante;24
+2024-05-26;Noche;Alajuela;Alajuela;Alajuela;Ruta 3;116;Particular;Fallecido;1;0;0;Lluvia fuerte;Húmeda;Sí;>60;Femenino;Peatón;21
+2024-05-26;Mañana;Limón;Limón;Limón;Ruta 32;63;Particular;Leve;0;0;1;Neblina;Húmeda;Sí;26-40;Masculino;Acompañante;30
+2024-05-27;Mañana;Heredia;Barva;San Pedro;Ruta 5;99;Particular;Leve;0;0;1;Lluvia;Húmeda;Sí;>60;Masculino;Conductor;18
+2024-05-29;Tarde;San José;San José;Catedral;Ruta 39;13;Particular;Leve;0;0;2;Despejado;Seca;Sí;18-25;Masculino;Acompañante;26
+2024-06-01;Tarde;Guanacaste;Liberia;Liberia;Ruta 1;18;Particular;Grave;0;1;0;Lluvia fuerte;Húmeda;Sí;41-60;Masculino;Peatón;50
+2024-06-02;Tarde;Cartago;La Unión;Tres Ríos;Ruta 2;109;Particular;Leve;0;0;2;Nublado;Seca;No;26-40;Femenino;Acompañante;14
+2024-06-05;Tarde;Guanacaste;Nicoya;Nicoya;Ruta 1;60;Particular;Leve;0;0;2;Despejado;Seca;Sí;26-40;Femenino;Conductor;47
+2024-06-07;Mañana;Puntarenas;Puntarenas;Puntarenas;Ruta 27;117;Motocicleta;Leve;0;0;1;Nublado;Húmeda;No;26-40;Masculino;Acompañante;26
+2024-06-11;Noche;Guanacaste;Carrillo;Palmira;Ruta 1;44;Particular;Fallecido;1;2;1;Lluvia;Húmeda;No;18-25;Masculino;Acompañante;27
+2024-06-13;Noche;Heredia;Heredia;Heredia;Ruta 4;71;Particular;Leve;0;0;1;Lluvia;Seca;Sí;>60;Masculino;Conductor;14
+2024-06-16;Noche;San José;Escazú;Escazú;Ruta 2;55;Motocicleta;Grave;0;1;0;Lluvia fuerte;Húmeda;Sí;26-40;Masculino;Conductor;12
+2024-06-16;Noche;Cartago;Turrialba;Turrialba;Ruta 2;58;Particular;Leve;0;0;1;Lluvia fuerte;Húmeda;Sí;>60;Femenino;Peatón;15
+2024-06-26;Mañana;San José;Escazú;San Rafael;Ruta 1;11;Motocicleta;Leve;0;0;2;Lluvia;Húmeda;Sí;41-60;Masculino;Conductor;11
+2024-07-01;Noche;Alajuela;Alajuela;San José;Ruta 4;5;Particular;Leve;0;0;1;Nublado;Seca;Sí;18-25;Masculino;Conductor;16
+2024-07-03;Tarde;Guanacaste;Santa Cruz;Santa Cruz;Ruta 21;34;Motocicleta;Leve;0;0;2;Nublado;Seca;Sí;41-60;Masculino;Conductor;52
+2024-07-08;Tarde;Alajuela;San Carlos;Quesada;Ruta 3;114;Bicicleta;Leve;0;0;1;Lluvia;Húmeda;Sí;>60;Masculino;Conductor;21
+2024-07-12;Mañana;Alajuela;San Carlos;Quesada;Ruta 4;28;Motocicleta;Leve;0;0;2;Lluvia;Húmeda;Sí;18-25;Femenino;Conductor;17
+2024-07-18;Tarde;Cartago;Cartago;Occidental;Ruta 39;96;Motocicleta;Leve;0;0;1;Nublado;Seca;Sí;26-40;Masculino;Acompañante;27
+2024-07-20;Madrugada;Limón;Pococí;Rita;Ruta 36;11;Particular;Leve;0;0;3;Neblina;Seca;Sí;18-25;Femenino;Peatón;24
+2024-07-23;Mañana;Puntarenas;Puntarenas;Puntarenas;Ruta 34;2;Particular;Leve;0;0;2;Nublado;Seca;Sí;>60;Masculino;Conductor;28
+2024-07-26;Noche;Alajuela;San Carlos;Florencia;Ruta 27;5;Motocicleta;Leve;0;0;3;Lluvia;Húmeda;Sí;26-40;Masculino;Peatón;15
+2024-07-30;Madrugada;San José;Escazú;Escazú;Ruta 39;2;Particular;Grave;0;1;1;Despejado;Seca;No;18-25;Masculino;Peatón;16
+2024-07-31;Mañana;San José;Alajuelita;San Josecito;Ruta 27;17;Motocicleta;Leve;0;0;1;Lluvia;Húmeda;Sí;41-60;Femenino;Conductor;14
+2024-08-05;Mañana;Alajuela;Alajuela;Río Segundo;Ruta 27;44;Particular;Grave;0;1;1;Despejado;Seca;Sí;18-25;Femenino;Conductor;42
+2024-08-10;Mañana;Alajuela;San Carlos;Quesada;Ruta 3;27;Motocicleta;Fallecido;1;1;0;Lluvia;Seca;No;18-25;Masculino;Conductor;15
+2024-08-13;Mañana;Guanacaste;Santa Cruz;Cuajiniquil;Ruta 21;24;Motocicleta;Leve;0;0;2;Lluvia;Húmeda;Sí;41-60;Masculino;Conductor;29
+2024-08-14;Tarde;San José;Desamparados;Desamparados;Ruta 3;109;Particular;Leve;0;0;3;Despejado;Seca;Sí;>60;Femenino;Conductor;28
+2024-08-14;Mañana;Heredia;Santo Domingo;Santo Tomás;Ruta 3;19;Particular;Leve;0;0;1;Lluvia;Húmeda;Sí;26-40;Masculino;Acompañante;19
+2024-08-26;Madrugada;San José;Alajuelita;Alajuelita;Ruta 1;70;Particular;Fallecido;3;0;0;Nublado;Húmeda;Sí;26-40;Femenino;Conductor;17
+2024-09-04;Tarde;Alajuela;Alajuela;Alajuela;Ruta 35;71;Transporte público;Leve;0;0;2;Lluvia;Húmeda;Sí;41-60;Femenino;Conductor;26
+2024-09-06;Mañana;Cartago;Cartago;Occidental;Ruta 2;112;Particular;Leve;0;0;1;Lluvia fuerte;Húmeda;Sí;41-60;Masculino;Conductor;16
+2024-09-07;Noche;Alajuela;Grecia;Grecia;Ruta 3;18;Particular;Leve;0;0;1;Despejado;Seca;Sí;>60;Masculino;Peatón;29
+2024-09-23;Noche;Cartago;Turrialba;La Suiza;Ruta 39;12;Particular;Leve;0;0;1;Nublado;Seca;No;18-25;Femenino;Conductor;18
+2024-10-05;Mañana;Cartago;La Unión;San Diego;Ruta 39;11;Particular;Leve;0;0;1;Nublado;Seca;Sí;18-25;Masculino;Conductor;51
+2025-02-30;Tarde;Cartago;Cartago;Oriental;Ruta 2;10

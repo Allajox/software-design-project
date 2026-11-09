@@ -1,0 +1,409 @@
+<section class="pagina">
+  <h1>Carga de datos</h1>
+  <p class="subtitulo">
+    Cargue archivos con siniestros viales (CSV, JSON, GeoJSON o Excel). Antes de importar nada, el
+    sistema valida cada fila y le muestra un reporte de calidad.
+  </p>
+
+  <!-- ===== Estado de los datos actuales ===== -->
+  <div class="datos-actuales" role="status">
+    <p>
+      Datos en el sistema: <strong>{{ fmtEntero(datos.total()) }} registros</strong> ·
+      @if (datos.esEjemplo()) {
+        <span>datos de ejemplo (simulados)</span>
+      } @else {
+        <span>cargados desde archivo (último: <strong>{{ datos.origen().archivo }}</strong>)</span>
+      }
+    </p>
+    @if (!datos.esEjemplo()) {
+      <button type="button" class="enlace" (click)="confirmarRestaurar.set(true)">Restaurar datos de ejemplo</button>
+    }
+  </div>
+  <p class="nota">
+    Mientras no exista el servidor, los datos cargados viven solo en esta pestaña del navegador:
+    al recargar la página se vuelve a los datos de ejemplo.
+  </p>
+
+  @switch (srv.fase()) {
+    <!-- ===================== 1. Elegir archivo ===================== -->
+    @case ('inicio') {
+      @if (srv.error(); as error) {
+        <div class="alerta error" role="alert">
+          <span class="glifo" aria-hidden="true">✕</span>
+          <div>
+            <strong>No se pudo leer el archivo</strong>
+            <p>{{ error }}</p>
+          </div>
+        </div>
+      }
+
+      <div
+        class="zona"
+        [class.activa]="arrastrando()"
+        (dragover)="alArrastrar($event, true)"
+        (dragleave)="alArrastrar($event, false)"
+        (drop)="alSoltar($event)"
+      >
+        <app-icon name="subir" />
+        <p class="zona-titulo">Arrastre aquí su archivo</p>
+        <p class="zona-sub">o</p>
+        <button type="button" class="primario" (click)="entrada.click()">Elegir archivo…</button>
+        <input #entrada type="file" hidden accept=".csv,.tsv,.txt,.json,.geojson,.xlsx" (change)="alElegir($event)" />
+        <p class="zona-ayuda">
+          CSV, JSON, GeoJSON o Excel (.xlsx, primera hoja) · hasta {{ limiteMb }} MB y {{ limiteFilas }} filas
+        </p>
+      </div>
+
+      <section class="bloque" aria-labelledby="t-guia">
+        <header class="bloque-cab">
+          <h2 id="t-guia">¿Cómo debe venir el archivo?</h2>
+        </header>
+        <p class="texto">
+          La primera fila debe tener los nombres de las columnas (no importa el orden, las tildes ni las mayúsculas).
+          Las columnas marcadas como obligatorias deben venir en el archivo y con datos en cada fila.
+        </p>
+        <div class="acciones-fila">
+          <button type="button" class="secundario" (click)="descargarPlantilla()"><app-icon name="descargar" /> Descargar plantilla (CSV)</button>
+          <a class="secundario" href="ejemplos/siniestros-ejemplo.csv" download><app-icon name="descargar" /> Ejemplo válido (CSV)</a>
+          <a class="secundario" href="ejemplos/siniestros-con-errores.csv" download><app-icon name="descargar" /> Ejemplo con errores (CSV)</a>
+          <a class="secundario" href="ejemplos/siniestros-ejemplo.xlsx" download><app-icon name="descargar" /> Ejemplo (Excel)</a>
+          <a class="secundario" href="ejemplos/siniestros-ejemplo.json" download><app-icon name="descargar" /> Ejemplo (JSON)</a>
+          <a class="secundario" href="ejemplos/siniestros-ejemplo.geojson" download><app-icon name="descargar" /> Ejemplo (GeoJSON)</a>
+        </div>
+
+        <div class="tabla-envoltura">
+          <table class="guia">
+            <caption class="solo-lectores">Columnas que acepta el sistema</caption>
+            <thead>
+              <tr><th scope="col">Columna</th><th scope="col">¿Obligatoria?</th><th scope="col">Formato aceptado</th><th scope="col">Ejemplo</th></tr>
+            </thead>
+            <tbody>
+              @for (c of columnasGuia; track c.clave) {
+                <tr>
+                  <th scope="row">{{ c.titulo }}</th>
+                  <td>
+                    @if (c.obligatorio) { <span class="etq obligatoria">Sí</span> }
+                    @else if (c.grupo) { <span class="etq obligatoria">Una de las dos</span> }
+                    @else { <span class="etq">No</span> }
+                  </td>
+                  <td>{{ c.formato }}</td>
+                  <td class="mono">{{ c.ejemplo }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="nota">
+          Los archivos con coordenadas (latitud y longitud) se validan contra el territorio de Costa Rica.
+          Un JSON puede ser una lista de objetos o un GeoJSON con puntos; en un Excel se lee la primera hoja.
+        </p>
+      </section>
+    }
+
+    <!-- ===================== 2. Procesando ===================== -->
+    @case ('procesando') {
+      <div class="procesando" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Leyendo y validando <strong>{{ srv.archivo()?.nombre }}</strong>…</p>
+      </div>
+    }
+
+    <!-- ===================== 3. Reporte de calidad ===================== -->
+    @case ('revision') {
+      @if (srv.resultado(); as r) {
+        <section class="bloque" aria-labelledby="t-resumen">
+          <header class="bloque-cab">
+            <h2 id="t-resumen">Reporte de calidad de datos</h2>
+            <button type="button" class="enlace" (click)="srv.reiniciar()">Elegir otro archivo</button>
+          </header>
+
+          <p class="archivo">
+            <strong>{{ srv.archivo()?.nombre }}</strong>
+            · {{ formatoPeso(srv.archivo()?.bytes ?? 0) }}
+            @if (srv.archivo()?.codificacion; as cod) { · {{ cod }} }
+            · {{ fmtEntero(r.filasLeidas) }} {{ r.filasLeidas === 1 ? 'fila con datos' : 'filas con datos' }}
+            @if (r.filasVacias > 0) { · {{ fmtEntero(r.filasVacias) }} vacías ignoradas }
+          </p>
+
+          @if (r.estructura.faltantes.length > 0) {
+            <div class="alerta error" role="alert">
+              <span class="glifo" aria-hidden="true">✕</span>
+              <div>
+                <strong>No se puede importar: faltan columnas obligatorias</strong>
+                <p>Al archivo le faltan: <strong>{{ r.estructura.faltantes.join(', ') }}</strong>. Agregue esas columnas (con esos nombres u otros equivalentes de la guía) y vuelva a cargarlo.</p>
+              </div>
+            </div>
+          } @else {
+            <p class="calidad">
+              <strong>{{ fmtPct(r.calidadPct) }}</strong> de las filas son utilizables
+              <span class="calidad-sub">({{ fmtEntero(r.importables) }} de {{ fmtEntero(r.filasLeidas) }})</span>
+            </p>
+
+            <div class="barra" aria-hidden="true">
+              @for (s of segmentos(); track s.clase) {
+                <span class="seg" [class]="s.clase" [style.width.%]="s.pct"></span>
+              }
+            </div>
+
+            <ul class="tiles" aria-label="Resultado de la validación">
+              <li class="tile ok">
+                <span class="glifo" aria-hidden="true">✓</span>
+                <span class="num" data-t="importables">{{ fmtEntero(r.importables - r.conAdvertencias) }}</span>
+                <span class="rot">Listos, sin problemas</span>
+              </li>
+              <li class="tile aviso">
+                <span class="glifo" aria-hidden="true">!</span>
+                <span class="num" data-t="advertencias">{{ fmtEntero(r.conAdvertencias) }}</span>
+                <span class="rot">Se importan con advertencias</span>
+              </li>
+              <li class="tile dup">
+                <span class="glifo" aria-hidden="true">⧉</span>
+                <span class="num" data-t="duplicados">{{ fmtEntero(duplicados()) }}</span>
+                <span class="rot">Duplicados (se omiten)</span>
+              </li>
+              <li class="tile error">
+                <span class="glifo" aria-hidden="true">✕</span>
+                <span class="num" data-t="rechazados">{{ fmtEntero(r.rechazados) }}</span>
+                <span class="rot">Rechazados por errores</span>
+              </li>
+            </ul>
+          }
+        </section>
+
+        <!-- ===== Importar ===== -->
+        @if (r.estructura.faltantes.length === 0) {
+          <section class="bloque importar" aria-labelledby="t-importar">
+            <header class="bloque-cab"><h2 id="t-importar">Importar</h2></header>
+
+            <fieldset class="modos">
+              <legend class="solo-lectores">Qué hacer con los datos actuales</legend>
+              <label class="modo" [class.elegido]="srv.modo() === 'agregar'">
+                <input type="radio" name="modo" value="agregar" [checked]="srv.modo() === 'agregar'" (change)="elegirModo('agregar')" />
+                <span>
+                  <strong>Agregar a los {{ fmtEntero(datos.total()) }} registros actuales</strong>
+                  <small>Los que ya existan se detectan y se omiten.</small>
+                </span>
+              </label>
+              <label class="modo" [class.elegido]="srv.modo() === 'reemplazar'">
+                <input type="radio" name="modo" value="reemplazar" [checked]="srv.modo() === 'reemplazar'" (change)="elegirModo('reemplazar')" />
+                <span>
+                  <strong>Reemplazar todos los datos actuales</strong>
+                  <small>Se descartan los registros que hay ahora y queda solo lo del archivo.</small>
+                </span>
+              </label>
+            </fieldset>
+
+            @if (r.rechazados > 0) {
+              <p class="aviso-importar">
+                Las <strong>{{ fmtEntero(r.rechazados) }}</strong> filas rechazadas <strong>no se importarán</strong>.
+                Puede descargarlas más abajo, corregirlas y volver a cargarlas.
+              </p>
+            }
+
+            <div class="acciones-fila">
+              <button type="button" class="primario grande" [disabled]="!r.puedeImportar" (click)="pedirImportar()">
+                {{ srv.modo() === 'reemplazar' ? 'Reemplazar con' : 'Importar' }} {{ fmtEntero(r.importables) }} {{ r.importables === 1 ? 'registro' : 'registros' }}
+              </button>
+              <button type="button" class="secundario" (click)="srv.reiniciar()">Cancelar</button>
+            </div>
+            @if (!r.puedeImportar) {
+              <p class="aviso-importar">No hay registros válidos para importar.</p>
+            }
+          </section>
+        }
+
+        <!-- ===== Estructura ===== -->
+        <section class="bloque" aria-labelledby="t-estructura">
+          <header class="bloque-cab"><h2 id="t-estructura">Columnas del archivo</h2></header>
+          <p class="texto">
+            Se reconocieron <strong>{{ r.estructura.reconocidas.length }}</strong> columnas.
+            @if (r.estructura.ignoradas.length > 0) { Se ignoran <strong>{{ r.estructura.ignoradas.length }}</strong> que el sistema no usa. }
+          </p>
+          <ul class="chips" aria-label="Columnas reconocidas">
+            @for (c of r.estructura.reconocidas; track c.cabecera) {
+              <li class="chip"><span>{{ c.cabecera }}</span>
+                @if (c.campo.titulo !== c.cabecera) { <small>→ {{ c.campo.titulo }}</small> }
+              </li>
+            }
+          </ul>
+          @if (r.estructura.ignoradas.length > 0) {
+            <ul class="chips" aria-label="Columnas ignoradas">
+              @for (c of r.estructura.ignoradas; track c) { <li class="chip tenue">{{ c }}</li> }
+            </ul>
+          }
+          @if (r.estructura.repetidas.length > 0) {
+            <p class="aviso-importar">
+              Hay columnas repetidas para el mismo dato: <strong>{{ r.estructura.repetidas.join(', ') }}</strong>. Se usó la primera.
+            </p>
+          }
+        </section>
+
+        <!-- ===== Completitud ===== -->
+        <section class="bloque" aria-labelledby="t-completitud">
+          <header class="bloque-cab"><h2 id="t-completitud">Qué tan completo viene cada dato</h2></header>
+          <p class="texto">Porcentaje de filas que traen valor en cada columna (antes de validarlo).</p>
+          <ul class="completitud">
+            @for (c of r.completitud; track c.clave) {
+              <li [attr.aria-label]="c.titulo + ': ' + (c.enArchivo ? fmtPct(c.pct) + ' completo' : 'la columna no viene en el archivo')">
+                <span class="nombre">{{ c.titulo }}@if (c.obligatorio) { <abbr title="Obligatorio">*</abbr> }</span>
+                <span class="pista" aria-hidden="true"><span class="relleno" [style.width.%]="c.pct"></span></span>
+                <span class="valor">
+                  @if (c.enArchivo) { {{ fmtPct(c.pct) }} <small>({{ fmtEntero(c.presentes) }}/{{ fmtEntero(c.total) }})</small> }
+                  @else { <small>columna ausente</small> }
+                </span>
+              </li>
+            }
+          </ul>
+          <p class="nota">* Obligatorio. Una celda vacía en un dato obligatorio hace que se rechace la fila.</p>
+        </section>
+
+        <!-- ===== Problemas ===== -->
+        @if (r.totalProblemas > 0) {
+          <section class="bloque" aria-labelledby="t-problemas">
+            <header class="bloque-cab">
+              <h2 id="t-problemas">Problemas encontrados <span class="contador">{{ fmtEntero(r.totalProblemas) }}</span></h2>
+            </header>
+
+            <div class="acciones-fila">
+              <button type="button" class="secundario" (click)="descargarReporte()"><app-icon name="descargar" /> Descargar reporte (CSV)</button>
+              @if (r.rechazados > 0) {
+                <button type="button" class="secundario" (click)="descargarRechazadas()"><app-icon name="descargar" /> Descargar filas rechazadas (CSV)</button>
+              }
+            </div>
+
+            <div class="filtros-problemas">
+              <ul class="tipos" aria-label="Filtrar por tipo de problema">
+                @for (t of tiposPresentes(); track t[0]) {
+                  <li>
+                    <button type="button" [attr.aria-pressed]="filtroCodigo() === t[0]" [class.activo]="filtroCodigo() === t[0]" (click)="alternarCodigo(t[0])">
+                      {{ etiquetaCodigo[t[0]] }} <span class="n">{{ fmtEntero(t[1]) }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+              <label class="gravedad">
+                <span>Gravedad</span>
+                <select (change)="cambiarGravedad($event)">
+                  <option value="todos" [selected]="filtroGravedad() === 'todos'">Todas</option>
+                  <option value="error" [selected]="filtroGravedad() === 'error'">Solo errores</option>
+                  <option value="advertencia" [selected]="filtroGravedad() === 'advertencia'">Solo advertencias</option>
+                </select>
+              </label>
+            </div>
+
+            @if (problemasFiltrados().length === 0) {
+              <p class="vacio-tabla">Ningún problema coincide con el filtro.</p>
+            } @else {
+              <div class="tabla-envoltura">
+                <table class="problemas">
+                  <caption class="solo-lectores">Problemas encontrados en el archivo</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ unidadFila() }}</th><th scope="col">Gravedad</th><th scope="col">Tipo</th>
+                      <th scope="col">Campo</th><th scope="col">Problema</th><th scope="col">Valor recibido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of problemasPagina(); track $index) {
+                      <tr>
+                        <td class="num-fila" [attr.data-label]="unidadFila()">{{ p.fila }}</td>
+                        <td data-label="Gravedad">
+                          <span class="etq-grav" [class.error]="p.gravedad === 'error'" [class.aviso]="p.gravedad === 'advertencia'">
+                            <span aria-hidden="true">{{ p.gravedad === 'error' ? '✕' : '!' }}</span>
+                            {{ p.gravedad === 'error' ? 'Error' : 'Advertencia' }}
+                          </span>
+                        </td>
+                        <td data-label="Tipo">{{ etiquetaCodigo[p.codigo] }}</td>
+                        <td data-label="Campo">{{ p.campo || '—' }}</td>
+                        <td class="mensaje" data-label="Problema">{{ p.mensaje }}</td>
+                        <td class="mono" data-label="Valor recibido">{{ p.valor || '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <app-paginador
+                [pagina]="paginaEfectiva()"
+                [tamanio]="tamanio()"
+                [total]="problemasFiltrados().length"
+                unidad="problemas"
+                [opcionesTamanio]="[10, 25, 50]"
+                (cambiarPagina)="pagina.set($event)"
+                (cambiarTamanio)="cambiarTamanio($event)"
+              />
+            }
+            @if (r.problemasTruncados) {
+              <p class="nota">Solo se listan los primeros 10 000 problemas; los totales de arriba son exactos.</p>
+            }
+          </section>
+        }
+
+        <!-- ===== Vista previa ===== -->
+        @if (vistaPrevia().length > 0) {
+          <section class="bloque" aria-labelledby="t-previa">
+            <header class="bloque-cab"><h2 id="t-previa">Vista previa de lo que se importará</h2></header>
+            <div class="tabla-envoltura">
+              <table class="previa">
+                <caption class="solo-lectores">Primeros registros válidos</caption>
+                <thead>
+                  <tr><th scope="col">Fecha</th><th scope="col">Franja</th><th scope="col">Provincia</th><th scope="col">Cantón</th><th scope="col">Ruta</th><th scope="col">Km</th><th scope="col">Vehículo</th><th scope="col">Severidad</th></tr>
+                </thead>
+                <tbody>
+                  @for (s of vistaPrevia(); track $index) {
+                    <tr>
+                      <td>{{ s.fecha }}</td><td>{{ s.franja }}</td><td>{{ s.provincia }}</td><td>{{ s.canton }}</td>
+                      <td>{{ s.ruta }}</td><td class="der">{{ s.kilometro }}</td><td>{{ s.vehiculo }}</td><td>{{ s.severidad }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        }
+      }
+    }
+
+    <!-- ===================== 4. Importado ===================== -->
+    @case ('importado') {
+      @if (srv.importacion(); as i) {
+        <div class="exito" role="status">
+          <span class="glifo grande" aria-hidden="true">✓</span>
+          <div>
+            <h2>Datos importados</h2>
+            <p>
+              Se {{ i.modo === 'reemplazar' ? 'cargaron' : 'agregaron' }} <strong>{{ fmtEntero(i.agregados) }}</strong> registros de
+              <strong>{{ i.archivo }}</strong>.
+              El sistema tiene ahora <strong>{{ fmtEntero(datos.total()) }}</strong> registros.
+            </p>
+            <div class="acciones-fila">
+              <a class="primario" routerLink="/dashboard">Ver el dashboard</a>
+              <a class="secundario" routerLink="/registros">Ver los registros</a>
+              <button type="button" class="secundario" (click)="srv.reiniciar()">Cargar otro archivo</button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  }
+</section>
+
+<!-- Confirmar reemplazo -->
+<app-modal [abierto]="confirmarReemplazo()" titulo="Reemplazar todos los datos" (cerrar)="confirmarReemplazo.set(false)">
+  <p class="mensaje">
+    Se descartarán los <strong>{{ fmtEntero(datos.total()) }}</strong> registros actuales y el sistema quedará solo con los
+    <strong>{{ fmtEntero(srv.resultado()?.importables ?? 0) }}</strong> del archivo. Esta acción no se puede deshacer.
+  </p>
+  <div acciones>
+    <button type="button" class="m-secundario" (click)="confirmarReemplazo.set(false)">Cancelar</button>
+    <button type="button" class="m-peligro" (click)="importar()">Reemplazar datos</button>
+  </div>
+</app-modal>
+
+<!-- Confirmar restaurar ejemplo -->
+<app-modal [abierto]="confirmarRestaurar()" titulo="Restaurar datos de ejemplo" (cerrar)="confirmarRestaurar.set(false)">
+  <p class="mensaje">Se descartarán los datos cargados desde archivo y se volverá a los registros de ejemplo.</p>
+  <div acciones>
+    <button type="button" class="m-secundario" (click)="confirmarRestaurar.set(false)">Cancelar</button>
+    <button type="button" class="m-peligro" (click)="restaurar()">Restaurar</button>
+  </div>
+</app-modal>

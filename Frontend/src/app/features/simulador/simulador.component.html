@@ -1,0 +1,301 @@
+<section class="pagina">
+  <h1>Simulador What-If</h1>
+  <p class="subtitulo">
+    Pruebe qué pasaría si se aplicara una medida preventiva —mejorar la señalización o reforzar el patrullaje— en un tramo,
+    una ruta, una provincia o todo el país, y vea el impacto estimado sobre los siniestros.
+  </p>
+
+  @if (totalCargados() > 0) {
+    <p class="importante" role="note">
+      <strong>Es una proyección con supuestos, no una predicción.</strong>
+      Los datos del sistema no registran ninguna medida aplicada, así que el efecto real de una medida no se puede medir con
+      ellos: lo fija usted en cada medida, con un rango (mínimo, central y máximo). Lo que sí salen de los datos son los
+      siniestros que quedan al alcance de cada medida.
+    </p>
+
+    <!-- ===== Alcance ===== -->
+    <section class="tarjeta" aria-labelledby="t-alcance">
+      <header class="encabezado con-accion">
+        <div>
+          <h2 id="t-alcance">¿Dónde se aplicaría?</h2>
+          <p>Elija la zona sobre la que se simula. Sin elegir nada, es todo el país.</p>
+        </div>
+        <button type="button" class="enlace" [disabled]="!alcanceModificado()" (click)="limpiarAlcance()">Restablecer alcance</button>
+      </header>
+
+      <div class="campos">
+        <label class="campo">
+          <span>Provincia</span>
+          <select (change)="cambiarProvincia($event)">
+            <option value="" [selected]="alcance().provincia === ''">Todo el país</option>
+            @for (p of provincias; track p) {
+              <option [value]="p" [selected]="alcance().provincia === p">{{ p }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="campo">
+          <span>Ruta</span>
+          <select (change)="cambiarRuta($event)">
+            <option value="" [selected]="alcance().ruta === ''">Todas las rutas</option>
+            @for (r of rutas; track r) {
+              <option [value]="r" [selected]="alcance().ruta === r">{{ r }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="campo corto">
+          <span>Desde el km</span>
+          <input type="number" min="0" step="1" inputmode="numeric" [disabled]="!alcance().ruta" [value]="alcance().kmDesde ?? ''"
+                 placeholder="inicio" (change)="cambiarKm('kmDesde', $event)" />
+        </label>
+
+        <label class="campo corto">
+          <span>Hasta el km</span>
+          <input type="number" min="0" step="1" inputmode="numeric" [disabled]="!alcance().ruta" [value]="alcance().kmHasta ?? ''"
+                 placeholder="final" (change)="cambiarKm('kmHasta', $event)" />
+        </label>
+
+        <label class="campo tramo">
+          <span>O elegir un tramo crítico detectado</span>
+          <select (change)="elegirTramo($event)">
+            <option value="">Seleccionar…</option>
+            @for (h of tramosCriticos(); track h.id) {
+              <option [value]="h.id">{{ etiquetaTramo(h) }} · {{ textoNivelHotspot[h.nivel] }} · {{ h.siniestros }} siniestros</option>
+            }
+          </select>
+        </label>
+      </div>
+      <p class="menor">
+        Los kilómetros son enteros y se incluyen ambos extremos (el «km 40» llega hasta el 40,99). Solo se pueden elegir
+        cuando hay una ruta. Los tramos críticos son los de «Hotspots de riesgo», con sus parámetros estándar.
+      </p>
+
+      @if (resultado(); as r) {
+        <p class="resumen-alcance">
+          En <strong>{{ descripcionAlcance() }}</strong> hay <strong>{{ fmtEntero(r.siniestros) }}</strong> siniestros
+          registrados: unos <strong>{{ cifra(r.base.siniestrosAnio) }}</strong> al año
+          ({{ fmtDec1(r.anios) }} años de datos).
+        </p>
+        @if (r.siniestros < minSiniestros) {
+          <p class="aviso" role="note">
+            <strong>Muy pocos siniestros.</strong> Con menos de {{ minSiniestros }} en el alcance, las cifras por año son muy
+            inestables: tome el resultado solo como una idea del orden de magnitud.
+          </p>
+        }
+      } @else {
+        <p class="aviso" role="alert">
+          No hay siniestros registrados en <strong>{{ descripcionAlcance() }}</strong>. Pruebe con otra zona (por ejemplo,
+          puede que esa ruta no pase por esa provincia).
+        </p>
+      }
+    </section>
+
+    <!-- ===== Medidas ===== -->
+    <section aria-labelledby="t-medidas">
+      <div class="titulo-medidas">
+        <h2 id="t-medidas">¿Qué medidas se aplicarían?</h2>
+        <button type="button" class="enlace" [disabled]="medidasPorDefecto()" (click)="restablecerMedidas()">Restablecer supuestos</button>
+      </div>
+
+      <div class="medidas">
+        <!-- Señalización -->
+        <article class="medida tarjeta" [class.apagada]="!medidas().senalizacion.activa" aria-labelledby="t-senal">
+          <header>
+            <h3 id="t-senal">Mejorar la señalización</h3>
+            <label class="interruptor">
+              <input type="checkbox" role="switch" [checked]="medidas().senalizacion.activa" (change)="alternarMedida('senalizacion', $event)" />
+              <span>{{ medidas().senalizacion.activa ? 'Aplicada' : 'Sin aplicar' }}</span>
+            </label>
+          </header>
+          <p class="menor">Actúa sobre los siniestros que hoy ocurren en lugares <em>sin</em> señalización.</p>
+          @if (resultado(); as r) {
+            <p class="alcanza">
+              <strong>{{ fmtDec1(r.cobertura.sinSenalizacionPct) }} %</strong> de los siniestros del alcance ocurrieron sin señalización.
+            </p>
+          }
+
+          <label class="campo-fila">
+            <span>De esos lugares, ¿qué porcentaje se mejora?</span>
+            <span class="entrada"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="cobertura"
+                   [disabled]="!medidas().senalizacion.activa" [value]="medidas().senalizacion.cobertura" (change)="cambiarCobertura($event)" /> %</span>
+          </label>
+
+          <fieldset class="efecto" [disabled]="!medidas().senalizacion.activa">
+            <legend>Reducción de siniestros donde se mejora <span class="supuesto">supuesto</span></legend>
+            <div class="trio">
+              <label><span>Mínimo</span>
+                <span class="con-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="senal-minimo" [value]="medidas().senalizacion.efecto.minimo" (change)="cambiarEfecto('senalizacion', 'minimo', $event)" /> %</span></label>
+              <label><span>Central</span>
+                <span class="con-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="senal-central" [value]="medidas().senalizacion.efecto.central" (change)="cambiarEfecto('senalizacion', 'central', $event)" /> %</span></label>
+              <label><span>Máximo</span>
+                <span class="con-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="senal-maximo" [value]="medidas().senalizacion.efecto.maximo" (change)="cambiarEfecto('senalizacion', 'maximo', $event)" /> %</span></label>
+            </div>
+          </fieldset>
+        </article>
+
+        <!-- Patrullaje -->
+        <article class="medida tarjeta" [class.apagada]="!medidas().patrullaje.activa" aria-labelledby="t-patru">
+          <header>
+            <h3 id="t-patru">Reforzar el patrullaje</h3>
+            <label class="interruptor">
+              <input type="checkbox" role="switch" [checked]="medidas().patrullaje.activa" (change)="alternarMedida('patrullaje', $event)" />
+              <span>{{ medidas().patrullaje.activa ? 'Aplicado' : 'Sin aplicar' }}</span>
+            </label>
+          </header>
+          <p class="menor">Actúa sobre los siniestros que ocurren en las franjas horarias con patrullaje.</p>
+          <div [class.deshabilitado]="!medidas().patrullaje.activa">
+            <app-chips-filtro etiqueta="Franjas con patrullaje (y % de los siniestros del alcance que ocurre en cada una)"
+              [opciones]="opcionesFranja()" [seleccionados]="medidas().patrullaje.franjas" (alternar)="alternarFranja($event)" />
+          </div>
+          @if (resultado(); as r) {
+            <p class="alcanza">
+              Las franjas elegidas cubren <strong>{{ fmtDec1(r.cobertura.enFranjasPct) }} %</strong> de los siniestros del alcance.
+            </p>
+          }
+
+          <fieldset class="efecto" [disabled]="!medidas().patrullaje.activa">
+            <legend>Reducción de siniestros en esas franjas <span class="supuesto">supuesto</span></legend>
+            <div class="trio">
+              <label><span>Mínimo</span>
+                <span class="con-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="patru-minimo" [value]="medidas().patrullaje.efecto.minimo" (change)="cambiarEfecto('patrullaje', 'minimo', $event)" /> %</span></label>
+              <label><span>Central</span>
+                <span class="con-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="patru-central" [value]="medidas().patrullaje.efecto.central" (change)="cambiarEfecto('patrullaje', 'central', $event)" /> %</span></label>
+              <label><span>Máximo</span>
+                <span class="con-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" id="patru-maximo" [value]="medidas().patrullaje.efecto.maximo" (change)="cambiarEfecto('patrullaje', 'maximo', $event)" /> %</span></label>
+            </div>
+          </fieldset>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== Resultado ===== -->
+    @if (vista(); as v) {
+      @if (ninguna()) {
+        <p class="aviso" role="note">Active al menos una medida para ver el impacto estimado.</p>
+      } @else {
+        <section class="resultado" aria-labelledby="t-resultado" aria-live="polite">
+          <div class="titulo-medidas">
+            <div>
+              <h2 id="t-resultado">Impacto estimado</h2>
+              <p class="menor sin-margen">
+                {{ descripcionAlcance() }} · promedio por año · con el efecto central; el rango va del efecto mínimo al máximo.
+              </p>
+            </div>
+            <button type="button" class="boton" (click)="exportar()"><app-icon name="descargar" /> Descargar CSV</button>
+          </div>
+
+          <div class="kpis">
+            <app-tarjeta-kpi sigla="SE" nombre="Siniestros evitados" [valor]="cifra(v.evitadosAnio)" unidad="por año"
+              [detalle]="'Rango: ' + cifra(v.evitadosMin) + ' a ' + cifra(v.evitadosMax)"
+              formula="Suma, sobre los siniestros del alcance, de la probabilidad de evitar cada uno, ÷ los años de datos." />
+            <app-tarjeta-kpi sigla="FE" nombre="Fallecidos evitados" [valor]="cifra(v.fallecidosAnio)" unidad="por año"
+              [detalle]="'Rango: ' + cifra(v.fallecidosMin) + ' a ' + cifra(v.fallecidosMax)"
+              formula="Cada siniestro evitado resta sus propios fallecidos: se supone que los evitados son un reparto al azar de los que hay." />
+            <app-tarjeta-kpi sigla="RS" nombre="Reducción de siniestros" [valor]="fmtDec1(v.r.impacto.central.reduccionPct) + ' %'"
+              [detalle]="'De ' + cifra(v.r.base.siniestrosAnio) + ' a ' + cifra(v.r.base.siniestrosAnio - v.evitadosAnio) + ' al año'"
+              formula="Siniestros evitados ÷ siniestros del alcance." />
+            <app-tarjeta-kpi sigla="ISS" nombre="Índice de severidad" [valor]="fmtDec2(v.r.impacto.central.issDespues)" unidad="después"
+              [detalle]="'Hoy: ' + fmtDec2(v.issBase) + ' (severidad promedio por siniestro)'"
+              formula="ISS de los siniestros que quedarían, con los mismos pesos del dashboard (10 por fallecido, 5 por herido grave, 1 por herido leve). Si la medida alcanza a todos los siniestros por igual, no cambia." />
+            @if (!esNacional()) {
+              <app-tarjeta-kpi sigla="TSV" nombre="Tasa de siniestralidad" [valor]="fmtDec1(v.r.impacto.central.tsvDespues) + ' %'" unidad="después"
+                [detalle]="'Hoy: ' + fmtDec1(v.r.base.tsv) + ' % del total nacional'"
+                formula="Siniestros del alcance ÷ siniestros del país. El total nacional también baja con los siniestros evitados." />
+            }
+          </div>
+
+          <p class="deteccion" [class]="'deteccion ' + v.deteccion.nivel" role="note">
+            @switch (v.deteccion.nivel) {
+              @case ('no-se-notaria') {
+                <strong>Con un solo año de datos no se notaría.</strong> Los siniestros de un año a otro varían por azar en
+                unos ±{{ cifra(v.r.ruidoAnual) }}; la reducción esperada ({{ cifra(v.evitadosAnio) }} al año) es menor que esa
+                variación. Para saber si la medida funcionó habría que medirla varios años o compararla con un tramo parecido sin la medida.
+              }
+              @case ('dudosa') {
+                <strong>Sería difícil de distinguir.</strong> La reducción esperada ({{ cifra(v.evitadosAnio) }} al año) es
+                parecida a la variación normal de un año a otro (±{{ cifra(v.r.ruidoAnual) }}). Haría falta mirar varios años.
+              }
+              @default {
+                <strong>Se notaría.</strong> La reducción esperada ({{ cifra(v.evitadosAnio) }} al año) es claramente mayor que
+                la variación normal de un año a otro (±{{ cifra(v.r.ruidoAnual) }}), siempre que el efecto real sea el supuesto.
+              }
+            }
+          </p>
+
+          <app-tarjeta-grafico titulo="Hoy y con las medidas" subtitulo="Promedio por año en el alcance elegido, con el efecto central y su rango.">
+            <app-grafico-antes-despues [filas]="v.filas" />
+            <app-tabla-datos descripcion="Hoy y con las medidas, por año: siniestros, heridos graves y fallecidos"
+              [columnas]="['Indicador', 'Hoy', 'Con medidas (central)', 'Rango']" [filas]="v.tablaAntes" />
+          </app-tarjeta-grafico>
+
+          <section class="tarjeta" aria-labelledby="t-desglose">
+            <header class="encabezado">
+              <h2 id="t-desglose">¿Qué aporta cada medida?</h2>
+              <p>Con el efecto central. Las dos juntas evitan menos que la suma de cada una: parte de los siniestros los alcanzan las dos.</p>
+            </header>
+            <app-tabla-datos descripcion="Aporte de cada medida, por año"
+              [columnas]="['Medida', 'Siniestros evitados', 'Fallecidos evitados', 'Alcanzados']" [filas]="v.filasDesglose" />
+          </section>
+        </section>
+      }
+    }
+
+    <!-- ===== Supuestos y fuentes ===== -->
+    <section class="tarjeta" aria-labelledby="t-supuestos">
+      <header class="encabezado">
+        <h2 id="t-supuestos">Supuestos, fuentes y límites</h2>
+        <p>De dónde salen los porcentajes de partida y qué no puede decir esta proyección.</p>
+      </header>
+
+      <h3>¿De dónde salen los porcentajes de partida?</h3>
+      <ul class="fuentes">
+        <li>
+          <strong>Señalización: 8 % (rango 0–15 %).</strong>
+          Un estudio de la FHWA (EE. UU.) sobre un paquete de mejoras de bajo costo de señales y demarcación en intersecciones con
+          señal de PARE, en Carolina del Sur, halló 8,3 % menos siniestros totales, 10 % menos con heridos o fallecidos y 15 % menos
+          nocturnos.
+          <a href="https://www.fhwa.dot.gov/publications/research/safety/17087" target="_blank" rel="noopener">FHWA, evaluación de señalización y demarcación de bajo costo</a>.
+          Es un tipo de lugar específico y otro país: no hay garantía de que se repita aquí.
+        </li>
+        <li>
+          <strong>Patrullaje: 10 % (rango 0–25 %).</strong>
+          Los estudios publicados miden efectos locales y de corto plazo, y varían mucho: en Dallas, alrededor de 9 % menos
+          siniestros mientras hay una patrulla presente y hasta cerca de 38 % menos la semana siguiente a una presencia intensiva en un
+          punto
+          (<a href="https://pluto.huji.ac.il/~saritw/police_jun2013.pdf" target="_blank" rel="noopener">Weisburd, 2013, documento de trabajo</a>);
+          en Nashville, 22,6 % menos en siete puntos críticos durante seis semanas, sin grupo de control y con un punto que empeoró
+          (<a href="https://nij.ojp.gov/topics/articles/effect-high-visibility-enforcement-motor-vehicle-crashes" target="_blank" rel="noopener">NIJ, control de alta visibilidad</a>).
+          Una revisión de TRL concluye que más control se asocia con más seguridad, pero no logra cuantificar la relación
+          (<a href="https://trl.co.uk/publications/trl637" target="_blank" rel="noopener">TRL</a>).
+          Un patrullaje sostenido y repartido en toda una ruta debería rendir menos que esos picos locales; el 10 % es una
+          <strong>suposición de trabajo del sistema</strong>, no un dato.
+        </li>
+        <li>El mínimo es 0 % en ambos casos porque que la medida no sirva es una posibilidad real. Cámbielos libremente: así se ve cuánto depende el resultado de lo que se supone.</li>
+      </ul>
+
+      <h3>Cómo se calcula</h3>
+      <ol class="pasos">
+        <li>Se toman los siniestros registrados en el alcance y se pasan a «por año» según los años que cubren los datos.</li>
+        <li>Cada siniestro tiene una probabilidad de haberse evitado: la señalización actúa solo si no había señalización (y según el porcentaje de lugares que se mejoran); el patrullaje actúa solo en las franjas elegidas. Si lo alcanzan las dos medidas, se combinan como eventos independientes (1 − (1 − p₁)(1 − p₂)), nunca más del 100 %.</li>
+        <li>Los siniestros evitados se suman. Los fallecidos y heridos evitados son los de cada siniestro, ponderados por esa misma probabilidad.</li>
+        <li>El ISS y el TSV se recalculan con lo que quedaría.</li>
+      </ol>
+
+      <h3>Límites</h3>
+      <ul class="limites">
+        <li>No hay desplazamiento: no se modela que los siniestros se muevan a otro lugar u hora cuando se refuerza uno.</li>
+        <li>Los siniestros evitados se reparten al azar entre los del alcance. Si una medida evita más los leves que los graves (o al revés), el resultado cambia.</li>
+        <li>El efecto se supone constante en el tiempo y sin costos. No considera el tránsito: si el tránsito crece, crecen también los siniestros.</li>
+        <li>Los tramos críticos se eligen justamente por tener más siniestros que lo normal; parte de ese exceso desaparece sola en los años siguientes (regresión a la media), aunque no se haga nada. No lo confunda con el efecto de la medida.</li>
+        <li>Es una herramienta para comparar escenarios y ver qué tanto depende el resultado de los supuestos, no para prometer resultados.</li>
+      </ul>
+    </section>
+  } @else {
+    <section class="vacio">
+      <h2>Aún no hay siniestros para simular</h2>
+      <p>El simulador trabaja sobre los siniestros cargados. Cuando haya datos, podrá elegir una zona y probar medidas.</p>
+      <a routerLink="/ingesta" class="boton-vacio">Ir a Carga de datos</a>
+    </section>
+  }
+</section>

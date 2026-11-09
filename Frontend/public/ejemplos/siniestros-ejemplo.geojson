@@ -1,0 +1,1025 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-01",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Sábado",
+    "franja": "Madrugada",
+    "provincia": "San José",
+    "canton": "San José",
+    "distrito": "Carmen",
+    "ruta": "Ruta 27",
+    "kilometro": 82,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "26-40",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 19
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.205,
+     9.805
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-02",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Domingo",
+    "franja": "Mañana",
+    "provincia": "Cartago",
+    "canton": "Paraíso",
+    "distrito": "Cachí",
+    "ruta": "Ruta 39",
+    "kilometro": 107,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": ">60",
+    "genero": "Masculino",
+    "condicion": "Peatón",
+    "tiempoRespuestaMin": 18
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -83.9125,
+     9.8275
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-04",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Martes",
+    "franja": "Tarde",
+    "provincia": "Heredia",
+    "canton": "Heredia",
+    "distrito": "Heredia",
+    "ruta": "Ruta 5",
+    "kilometro": 49,
+    "vehiculo": "Carga pesada",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Peatón",
+    "tiempoRespuestaMin": 33
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.23,
+     10.06
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-05",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Miércoles",
+    "franja": "Tarde",
+    "provincia": "San José",
+    "canton": "Desamparados",
+    "distrito": "Desamparados",
+    "ruta": "Ruta 39",
+    "kilometro": 12,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Neblina",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 25
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.0575,
+     9.8325
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-07",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Viernes",
+    "franja": "Noche",
+    "provincia": "San José",
+    "canton": "Escazú",
+    "distrito": "San Rafael",
+    "ruta": "Ruta 27",
+    "kilometro": 36,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Peatón",
+    "tiempoRespuestaMin": 14
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.175,
+     9.925
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-21",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Viernes",
+    "franja": "Mañana",
+    "provincia": "Cartago",
+    "canton": "Paraíso",
+    "distrito": "Cachí",
+    "ruta": "Ruta 39",
+    "kilometro": 12,
+    "vehiculo": "Motocicleta",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "26-40",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 12
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -83.8825,
+     9.9475
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-28",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Viernes",
+    "franja": "Mañana",
+    "provincia": "San José",
+    "canton": "Alajuelita",
+    "distrito": "Alajuelita",
+    "ruta": "Ruta 3",
+    "kilometro": 18,
+    "vehiculo": "Particular",
+    "severidad": "Grave",
+    "fallecidos": 0,
+    "heridosGraves": 1,
+    "heridosLeves": 0,
+    "clima": "Despejado",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": ">60",
+    "genero": "Femenino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 16
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.16,
+     9.86
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-03-31",
+    "anio": 2025,
+    "mes": 3,
+    "diaSemana": "Lunes",
+    "franja": "Madrugada",
+    "provincia": "Guanacaste",
+    "canton": "Nicoya",
+    "distrito": "Nicoya",
+    "ruta": "Ruta 1",
+    "kilometro": 27,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 39
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.3875,
+     10.6525
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-04-01",
+    "anio": 2025,
+    "mes": 4,
+    "diaSemana": "Martes",
+    "franja": "Tarde",
+    "provincia": "Alajuela",
+    "canton": "San Carlos",
+    "distrito": "Pital",
+    "ruta": "Ruta 27",
+    "kilometro": 113,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 18
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.275,
+     10.135
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-04-04",
+    "anio": 2025,
+    "mes": 4,
+    "diaSemana": "Viernes",
+    "franja": "Noche",
+    "provincia": "San José",
+    "canton": "Desamparados",
+    "distrito": "San Miguel",
+    "ruta": "Ruta 27",
+    "kilometro": 39,
+    "vehiculo": "Motocicleta",
+    "severidad": "Fallecido",
+    "fallecidos": 1,
+    "heridosGraves": 1,
+    "heridosLeves": 0,
+    "clima": "Lluvia",
+    "calzada": "Derrumbe",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 39
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.0125,
+     9.8875
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-04-18",
+    "anio": 2025,
+    "mes": 4,
+    "diaSemana": "Viernes",
+    "franja": "Tarde",
+    "provincia": "San José",
+    "canton": "Escazú",
+    "distrito": "Escazú",
+    "ruta": "Ruta 27",
+    "kilometro": 38,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Acompañante",
+    "tiempoRespuestaMin": 13
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.13,
+     9.98
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-04-18",
+    "anio": 2025,
+    "mes": 4,
+    "diaSemana": "Viernes",
+    "franja": "Noche",
+    "provincia": "Heredia",
+    "canton": "Barva",
+    "distrito": "Barva",
+    "ruta": "Ruta 3",
+    "kilometro": 14,
+    "vehiculo": "Motocicleta",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 20
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.0375,
+     9.8925
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-04-19",
+    "anio": 2025,
+    "mes": 4,
+    "diaSemana": "Sábado",
+    "franja": "Mañana",
+    "provincia": "Alajuela",
+    "canton": "Grecia",
+    "distrito": "Grecia",
+    "ruta": "Ruta 27",
+    "kilometro": 81,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 14
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.245,
+     10.005
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-04-19",
+    "anio": 2025,
+    "mes": 4,
+    "diaSemana": "Sábado",
+    "franja": "Madrugada",
+    "provincia": "Alajuela",
+    "canton": "Alajuela",
+    "distrito": "Alajuela",
+    "ruta": "Ruta 27",
+    "kilometro": 40,
+    "vehiculo": "Particular",
+    "severidad": "Grave",
+    "fallecidos": 0,
+    "heridosGraves": 2,
+    "heridosLeves": 0,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 17
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.1125,
+     10.0975
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-06",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Martes",
+    "franja": "Noche",
+    "provincia": "Heredia",
+    "canton": "Santo Domingo",
+    "distrito": "Santo Tomás",
+    "ruta": "Ruta 3",
+    "kilometro": 111,
+    "vehiculo": "Carga pesada",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Despejado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 18
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.14,
+     9.92
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-09",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Viernes",
+    "franja": "Tarde",
+    "provincia": "Limón",
+    "canton": "Limón",
+    "distrito": "Río Blanco",
+    "ruta": "Ruta 32",
+    "kilometro": 63,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Acompañante",
+    "tiempoRespuestaMin": 27
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -82.9175,
+     10.0025
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-14",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Miércoles",
+    "franja": "Mañana",
+    "provincia": "Alajuela",
+    "canton": "San Carlos",
+    "distrito": "Quesada",
+    "ruta": "Ruta 3",
+    "kilometro": 97,
+    "vehiculo": "Particular",
+    "severidad": "Grave",
+    "fallecidos": 0,
+    "heridosGraves": 2,
+    "heridosLeves": 1,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": ">60",
+    "genero": "Femenino",
+    "condicion": "Acompañante",
+    "tiempoRespuestaMin": 24
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.215,
+     10.125
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-15",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Jueves",
+    "franja": "Noche",
+    "provincia": "Puntarenas",
+    "canton": "Golfito",
+    "distrito": "Golfito",
+    "ruta": "Ruta 23",
+    "kilometro": 108,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 22
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.9525,
+     9.9275
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-17",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Sábado",
+    "franja": "Tarde",
+    "provincia": "Puntarenas",
+    "canton": "Esparza",
+    "distrito": "San Juan Grande",
+    "ruta": "Ruta 34",
+    "kilometro": 106,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Femenino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 22
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.82,
+     10.02
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-21",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Miércoles",
+    "franja": "Noche",
+    "provincia": "Alajuela",
+    "canton": "San Carlos",
+    "distrito": "Florencia",
+    "ruta": "Ruta 1",
+    "kilometro": 24,
+    "vehiculo": "Motocicleta",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "18-25",
+    "genero": "Femenino",
+    "condicion": "Acompañante",
+    "tiempoRespuestaMin": 16
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.3175,
+     9.9025
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-05-24",
+    "anio": 2025,
+    "mes": 5,
+    "diaSemana": "Sábado",
+    "franja": "Noche",
+    "provincia": "Cartago",
+    "canton": "Paraíso",
+    "distrito": "Paraíso",
+    "ruta": "Ruta 2",
+    "kilometro": 57,
+    "vehiculo": "Particular",
+    "severidad": "Fallecido",
+    "fallecidos": 1,
+    "heridosGraves": 1,
+    "heridosLeves": 0,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Peatón",
+    "tiempoRespuestaMin": 17
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -83.895,
+     9.835
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-04",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Miércoles",
+    "franja": "Madrugada",
+    "provincia": "Guanacaste",
+    "canton": "Santa Cruz",
+    "distrito": "Santa Cruz",
+    "ruta": "Ruta 1",
+    "kilometro": 108,
+    "vehiculo": "Carga pesada",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 24
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.5325,
+     10.6975
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-09",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Lunes",
+    "franja": "Tarde",
+    "provincia": "Alajuela",
+    "canton": "San Carlos",
+    "distrito": "Quesada",
+    "ruta": "Ruta 27",
+    "kilometro": 111,
+    "vehiculo": "Carga pesada",
+    "severidad": "Grave",
+    "fallecidos": 0,
+    "heridosGraves": 1,
+    "heridosLeves": 1,
+    "clima": "Neblina",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": ">60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 28
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.17,
+     9.93
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-15",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Domingo",
+    "franja": "Noche",
+    "provincia": "Puntarenas",
+    "canton": "Quepos",
+    "distrito": "Quepos",
+    "ruta": "Ruta 27",
+    "kilometro": 74,
+    "vehiculo": "Motocicleta",
+    "severidad": "Grave",
+    "fallecidos": 0,
+    "heridosGraves": 1,
+    "heridosLeves": 0,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": ">60",
+    "genero": "Masculino",
+    "condicion": "Peatón",
+    "tiempoRespuestaMin": 26
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.9075,
+     9.9825
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-16",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Lunes",
+    "franja": "Noche",
+    "provincia": "Cartago",
+    "canton": "Cartago",
+    "distrito": "Guadalupe",
+    "ruta": "Ruta 10",
+    "kilometro": 114,
+    "vehiculo": "Bicicleta",
+    "severidad": "Grave",
+    "fallecidos": 0,
+    "heridosGraves": 1,
+    "heridosLeves": 0,
+    "clima": "Lluvia",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 12
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -83.865,
+     9.955
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-25",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Miércoles",
+    "franja": "Mañana",
+    "provincia": "Alajuela",
+    "canton": "Alajuela",
+    "distrito": "Alajuela",
+    "ruta": "Ruta 35",
+    "kilometro": 105,
+    "vehiculo": "Particular",
+    "severidad": "Fallecido",
+    "fallecidos": 1,
+    "heridosGraves": 0,
+    "heridosLeves": 0,
+    "clima": "Lluvia",
+    "calzada": "Húmeda",
+    "senalizacion": false,
+    "edad": "18-25",
+    "genero": "Masculino",
+    "condicion": "Acompañante",
+    "tiempoRespuestaMin": 17
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.2725,
+     9.9575
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-25",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Miércoles",
+    "franja": "Noche",
+    "provincia": "Puntarenas",
+    "canton": "Puntarenas",
+    "distrito": "Puntarenas",
+    "ruta": "Ruta 27",
+    "kilometro": 40,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Neblina",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Peatón",
+    "tiempoRespuestaMin": 16
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.76,
+     10.01
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-27",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Viernes",
+    "franja": "Noche",
+    "provincia": "San José",
+    "canton": "Alajuelita",
+    "distrito": "Alajuelita",
+    "ruta": "Ruta 32",
+    "kilometro": 18,
+    "vehiculo": "Transporte público",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": false,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 21
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.1275,
+     10.0525
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-28",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Sábado",
+    "franja": "Mañana",
+    "provincia": "San José",
+    "canton": "Desamparados",
+    "distrito": "San Miguel",
+    "ruta": "Ruta 2",
+    "kilometro": 88,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 2,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "26-40",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 15
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -83.995,
+     9.895
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "fecha": "2025-06-29",
+    "anio": 2025,
+    "mes": 6,
+    "diaSemana": "Domingo",
+    "franja": "Tarde",
+    "provincia": "San José",
+    "canton": "Goicoechea",
+    "distrito": "Calle Blancos",
+    "ruta": "Ruta 27",
+    "kilometro": 81,
+    "vehiculo": "Particular",
+    "severidad": "Leve",
+    "fallecidos": 0,
+    "heridosGraves": 0,
+    "heridosLeves": 1,
+    "clima": "Nublado",
+    "calzada": "Seca",
+    "senalizacion": true,
+    "edad": "41-60",
+    "genero": "Masculino",
+    "condicion": "Conductor",
+    "tiempoRespuestaMin": 11
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -84.1125,
+     9.9875
+    ]
+   }
+  }
+ ]
+}

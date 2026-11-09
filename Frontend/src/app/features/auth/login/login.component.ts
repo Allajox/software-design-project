@@ -57,6 +57,7 @@ export class LoginComponent {
 
   private traducirError(err: HttpErrorResponse): string {
     if (err.status === 401) return 'Correo o contraseña incorrectos.';
+    if (err.status === 403) return 'Su cuenta está desactivada. Comuníquese con una persona administradora.';
     if (err.status === 0) return 'No hay conexión con el servidor. Intente de nuevo.';
     return 'Ocurrió un error inesperado. Intente más tarde.';
   }
