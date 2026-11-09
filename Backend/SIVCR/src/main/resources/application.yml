@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: sivcr
+
+  datasource:
+    # reWriteBatchedInserts agrupa los INSERT por lote en una sola sentencia (carga masiva)
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sivcr}?reWriteBatchedInserts=true
+    username: ${DB_USER:sivcr}
+    password: ${DB_PASSWORD:sivcr}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # El esquema lo crea Flyway; Hibernate solo verifica que las entidades coincidan con las tablas.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50          # coincide con INCREMENT BY 50 de sinister_seq y victim_seq
+        order_inserts: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Nombres de los tablespaces. En Docker Compose se definen con SIVCR_TS_*; si no existen
+    # (PostgreSQL local, pruebas con Testcontainers) todo cae en pg_default.
+    placeholders:
+      ts_data: ${SIVCR_TS_DATA:pg_default}
+      ts_index: ${SIVCR_TS_INDEX:pg_default}
+      ts_admin: ${SIVCR_TS_ADMIN:pg_default}
+
+  servlet:
+    multipart:
+      # COSEVI pesa ~20 MB (siniestros) y ~22 MB (personas)
+      max-file-size: 200MB
+      max-request-size: 200MB
+
+sivcr:
+  ingestion:
+    tamano-lote: 1000     # filas por INSERT por lotes; evita cargar el archivo completo en memoria
+    max-errores: 1000     # errores que se guardan en el reporte (los contadores son siempre exactos)
+    perfiles: classpath*:ingestion/profiles/*.yml

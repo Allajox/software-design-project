@@ -1,0 +1,113 @@
+# Perfil: COSEVI - base de personas en accidentes (un registro por persona involucrada).
+#
+# Verificado contra el archivo real "3 Base de personas en accidentes 2020_ 2025": 199 142 filas,
+# 12 columnas, separador ';', codificación ISO-8859-1.
+#
+# IMPORTANTE: este archivo NO trae un identificador de siniestro, así que no se puede enlazar con
+# cosevi-siniestros. Las personas se guardan en la tabla victim sin sinister_id, con su propio
+# año/provincia/cantón/distrito/día/mes (migración V3). Los KPI por víctima leen victim directamente.
+id: cosevi-personas
+fuente: COSEVI
+tipo: VICTIM
+descripcion: COSEVI - personas en accidentes (un registro por persona)
+verificacion: VERIFICADO
+habilitado: true
+formatos: [CSV, JSON, EXCEL]
+
+csv:
+  charset: AUTO
+  fallbackCharset: ISO-8859-1
+  delimiter: ";"
+
+encabezadosRequeridos: ["Rol", "Tipo de lesión", "Sexo", "Edad"]
+
+valoresDesconocidos: [Desconocido, Desconocida, Ignorado, Ignorada]
+
+columnas:
+  - columna: "Rol"
+    campo: rol
+    tipo: CHOICE
+    obligatorio: true            # "Desconocido" (89 filas) deja el registro INCOMPLETO
+    valores:
+      "Conductor": CONDUCTOR
+      "Conductor de motocicleta": CONDUCTOR_MOTOCICLETA
+      "Pasajero carro": PASAJERO_CARRO
+      "Pasajero moto": PASAJERO_MOTO
+      "Pasajero bicicleta": PASAJERO_BICICLETA
+      "Pasajero autobús o microbús": PASAJERO_BUS
+      "Peatón": PEATON
+      "Ciclista": CICLISTA
+      "Dueño de propiedad": DUENO_PROPIEDAD
+      "Otro": OTRO
+
+  - columna: "Tipo de lesión"
+    campo: tipo_lesion
+    tipo: CHOICE
+    obligatorio: true
+    valoresVacios: ["Lesión Ignorada"]   # 339 filas: sin dato de lesión -> INCOMPLETO
+    valores:
+      "Ileso": ILESO
+      "Herido leve": HERIDO_LEVE
+      "Herido grave": HERIDO_GRAVE
+      "Muerte en sitio": MUERTE_EN_SITIO
+
+  - columna: "Edad"             # "Desconocida" queda vacío (no es obligatoria)
+    campo: edad
+    tipo: INTEGER
+    min: 0
+    max: 120
+
+  - columna: "Sexo"
+    campo: genero
+    tipo: CHOICE
+    valores:
+      "Hombre": MASCULINO
+      "Mujer": FEMENINO
+
+  - columna: "Vehiculo en  el que viajaba"   # el encabezado real tiene dos espacios; se normaliza
+    campo: vehiculo
+    tipo: STRING
+
+  - columna: "Año"
+    campo: anio
+    tipo: INTEGER
+    obligatorio: true
+    min: 2000
+    max: 2100
+
+  - columna: "Provincia"
+    campo: provincia
+    tipo: CHOICE
+    obligatorio: true
+    valores:
+      "San José": SAN_JOSE
+      "Alajuela": ALAJUELA
+      "Cartago": CARTAGO
+      "Heredia": HEREDIA
+      "Guanacaste": GUANACASTE
+      "Puntarenas": PUNTARENAS
+      "Limón": LIMON
+
+  - columna: "Cantón"
+    campo: canton
+    tipo: STRING
+    obligatorio: true
+
+  - columna: "Distrito"
+    campo: distrito
+    tipo: STRING
+    obligatorio: true
+
+  - columna: "Día"
+    campo: dia_semana
+    tipo: WEEKDAY_LABEL
+    obligatorio: true
+
+  - columna: "Mes"
+    campo: mes
+    tipo: MONTH_LABEL
+    obligatorio: true
+
+  - columna: "Edad quinquenal"
+    campo: edad_quinquenal
+    tipo: STRING

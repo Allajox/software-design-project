@@ -2,14 +2,10 @@
 --     y ajustes de sinister según la estructura real de COSEVI.csv
 --
 -- Usa los mismos placeholders de Flyway que V1 (ts_data, ts_index, ts_admin).
---
--- Decisiones de diseño:
 --  * COSEVI no trae fecha exacta ni coordenadas: trae año, mes, día de la semana y hora.
 --    Esas columnas se guardan por separado porque son justo las que usan los filtros (HU 7).
 --    `fecha`, `lat`, `lon`, `tipo_vehiculo` y `tiempo_respuesta_min` siguen existiendo (nullable)
 --    para fuentes que sí los traigan.
---  * severidad / clima / calzada quedan como texto SIN CHECK: sus valores dependen de los enums
---    de Java, que todavía se están ajustando. La validación vive en DataValidator.
 --  * Los criterios de un filtro se guardan como JSONB (FilterCriteria tiene muchos campos
 --    opcionales y puede crecer sin tener que migrar la tabla).
 
