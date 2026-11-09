@@ -1,7 +1,7 @@
-#Backend SIVCR (Spring Boot + Java 21)
+#Backend SIVCR (Spring Boot + Java 25)
 
 #Etapa 1: compilar con Maven
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -DskipTests clean package
 
 #Etapa 2: imagen final, solo JRE
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 

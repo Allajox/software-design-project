@@ -36,11 +36,10 @@ services:
       #Backend/ (donde están pom.xml y src/). Las rutas son relativas a este archivo.
       context: ..
       #la ruta del Dockerfile es relativa al contexto
-      dockerfile: Container/Dockerfile
+      dockerfile: Containers/Dockerfile
       args:
-        #carpeta del proyecto Java (la que contiene pom.xml), relativa al contexto.
-        #CAMBIAR por el nombre real de la carpeta.
-        PROYECTO: NombreCarpetaJava
+        #carpeta del proyecto Java (la que contiene pom.xml), relativa al contexto
+        PROYECTO: SIVCR
     image: sivcr-backend
     container_name: sivcr_backend
     restart: unless-stopped
@@ -53,6 +52,14 @@ services:
       DB_NAME: ${DB_NAME:-sivcr}
       DB_USER: ${DB_USER:-sivcr}
       DB_PASSWORD: ${DB_PASSWORD:-sivcr}
+      #nombres de los tablespaces que crea Init/PostgresInit/01-tablespaces.sql (los usan las migraciones de Flyway)
+      SIVCR_TS_DATA: ts_sivcr_data
+      SIVCR_TS_INDEX: ts_sivcr_index
+      SIVCR_TS_ADMIN: ts_sivcr_admin
+      #"dev" activa DevSecurityConfig: acepta los tokens falsos del login simulado de Angular (mock-jwt-N).
+      #SOLO PARA DESARROLLO: en cualquier entorno accesible desde fuera hay que definir otro perfil
+      #(SPRING_PROFILES_ACTIVE=prod) y usar la autenticacion real.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     networks:
       - sivcr_network
     depends_on:
