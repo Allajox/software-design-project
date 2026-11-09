@@ -34,10 +34,6 @@ public interface FilterCriteriaBuilder {
     
     void setCalzada(RoadStatus c);
     
-    void setEdad(int min, int max);
-    
-    void setGenero(Gender g);
-    
     void reset();
     
     void build();

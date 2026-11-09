@@ -2,18 +2,16 @@ package controller;
 
 import enums.Climate;
 import enums.Day;
-import enums.Gender;
 import enums.Province;
 import enums.QualityStatus;
 import enums.RoadStatus;
 import enums.Severity;
 import enums.TimeSlot;
 import enums.VehycleType;
-import enums.VictimCondition;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import model.ConcreteFilterCriteriaBuilder;
-import model.FilterCriteriaDirector;
 import model.FilterCriteria;
 import model.Repository;
 import model.Sinister;
@@ -21,6 +19,7 @@ import model.SavedFilter;
 import model.User;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
 
 @Component
 public class FilterManager {
@@ -34,17 +33,13 @@ public class FilterManager {
         this.jdbc = jdbc;
     }
     /*
-    public List<Sinister> aplicar(FilterCriteria c) {
-        List<Sinister> list = new ArrayList<Sinister>();
-        return list;
-    }
-    
     public Page<Sinister> getRegistros(FilterCriteria c, int pagina, String orden) {
         // To-do
         return c;
     }
     */
     
+    // Applies the given filter and returns all sinisters that match
     public List<Sinister> aplicar(FilterCriteria c) {
         StringBuilder sql = new StringBuilder("SELECT * FROM sinister WHERE 1=1");
         MapSqlParameterSource p = new MapSqlParameterSource();
@@ -82,72 +77,53 @@ public class FilterManager {
             sql.append(" AND calzada = :calzada");
             p.addValue("calzada", c.getCalzada().name());
         }
-        if (c.getGenero() != null) {
-            sql.append(" AND genero = :genero");
-            p.addValue("genero", c.getGenero().name());
-        }
         if (c.getAnio() > 0) {
-            sql.append(" AND EXTRACT(YEAR FROM fecha) = :anio");
+            sql.append(" AND anio = :anio");
             p.addValue("anio", c.getAnio());
         }
         if (c.getMes() > 0) {
-            sql.append(" AND EXTRACT(MONTH FROM fecha) = :mes");
+            sql.append(" AND mes = :mes");
             p.addValue("mes", c.getMes());
         }
         if (c.getDiaSemana() != null) {
-            // ISODOW: 1 = lunes ... 7 = domingo
-            sql.append(" AND EXTRACT(ISODOW FROM fecha) = :dia");
-            p.addValue("dia", c.getDiaSemana().ordinal() + 1); // ajusta según tu enum Day
+            sql.append(" AND dia_semana = :dia");
+            p.addValue("dia", c.getDiaSemana().name());
         }
         if (c.getFranja() != null) {
-            int[] rango = rangoHoras(c.getFranja());
-            sql.append(" AND EXTRACT(HOUR FROM fecha) >= :horaIni")
-               .append(" AND EXTRACT(HOUR FROM fecha) < :horaFin");
-            p.addValue("horaIni", rango[0]);
-            p.addValue("horaFin", rango[1]);
-        }
-
-        // --- Edad ---
-        if (c.getEdadMin() > 0) {
-            sql.append(" AND edad >= :edadMin");
-            p.addValue("edadMin", c.getEdadMin());
-        }
-        if (c.getEdadMax() > 0) {
-            sql.append(" AND edad <= :edadMax");
-            p.addValue("edadMax", c.getEdadMax());
+            sql.append(" AND franja = :franja");
+            p.addValue("franja", c.getFranja().name());
         }
 
         sql.append(" ORDER BY fecha");
 
-        return jdbc.query(sql.toString(), p, (rs, i) -> new Sinister(
-            Province.valueOf(rs.getString("provincia")),
+        return jdbc.query(sql.toString(), p, (rs, i) -> {
+        Timestamp ts = rs.getTimestamp("fecha");
+        String veh = rs.getString("tipo_vehiculo");
+        String sev = rs.getString("severidad");
+        String cli = rs.getString("clima");
+        String cal = rs.getString("calzada");
+        String cld = rs.getString("calidad");
+        String prov = rs.getString("provincia");
+
+        return new Sinister(
+            prov == null ? null : Province.valueOf(prov),
             rs.getString("canton"),
             rs.getString("distrito"),
             rs.getString("ruta"),
             rs.getDouble("km"),
             rs.getDouble("lat"),
             rs.getDouble("lon"),
-            VehycleType.valueOf(rs.getString("tipo_vehiculo")),
-            Severity.valueOf(rs.getString("severidad")),
-            Climate.valueOf(rs.getString("clima")),
-            RoadStatus.valueOf(rs.getString("calzada")),
+            veh == null ? null : VehycleType.valueOf(veh),
+            sev == null ? null : Severity.valueOf(sev),
+            cli == null ? null : Climate.valueOf(cli),
+            cal == null ? null : RoadStatus.valueOf(cal),
             rs.getDouble("tiempo_respuesta_min"),
-            QualityStatus.valueOf(rs.getString("calidad")),
-            rs.getTimestamp("fecha").toLocalDateTime(),
-            rs.getInt("edad"),
-            Gender.valueOf(rs.getString("genero")),
-            VictimCondition.valueOf(rs.getString("condicion"))
-        ));
+            cld == null ? null : QualityStatus.valueOf(cld),
+            ts == null ? null : ts.toLocalDateTime()
+        );
+    });
     }
-    
-    private int[] rangoHoras(TimeSlot franja) {
-    return switch (franja) {
-        case MADRUGADA -> new int[]{0, 6};
-        case MANANA    -> new int[]{6, 12};
-        case TARDE     -> new int[]{12, 18};
-        case NOCHE     -> new int[]{18, 24};
-    };
-}
+
     
     public SavedFilter guardarFiltro(String nombre, FilterCriteria c, User u) {
         SavedFilter filtro = new SavedFilter(nombre, c, u);
@@ -163,7 +139,7 @@ public class FilterManager {
     public FilterCriteria nuevoFiltro(Province provincia, String canton, String distrito, 
                                         String ruta, int anio, int mes, Day diaSemana, TimeSlot franja, 
                                         VehycleType tipoVehiculo, Severity severidad, Climate clima, 
-                                        RoadStatus calzada, int edadMin, int edadMax, Gender genero) {
+                                        RoadStatus calzada) {
         
         builder.setProvincia(provincia);
         builder.setCanton(canton);
@@ -177,15 +153,8 @@ public class FilterManager {
         builder.setSeveridad(severidad);
         builder.setClima(clima);
         builder.setCalzada(calzada);
-        builder.setEdad(edadMin, edadMax);
-        builder.setGenero(genero);
         builder.build();
         
-        return builder.getResult();
-    }
-    
-    public FilterCriteria restablecer() {
-        builder.reset();
         return builder.getResult();
     }
 }
