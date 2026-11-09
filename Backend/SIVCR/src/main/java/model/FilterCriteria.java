@@ -22,14 +22,11 @@ public class FilterCriteria {
     private Severity severidad;
     private Climate clima;
     private RoadStatus calzada;
-    private int edadMin;
-    private int edadMax;
-    private Gender genero;
 
     FilterCriteria(Province provincia, String canton, String distrito, 
             String ruta, int anio, int mes, Day diaSemana, TimeSlot franja, 
             VehycleType tipoVehiculo, Severity severidad, Climate clima, 
-            RoadStatus calzada, int edadMin, int edadMax, Gender genero) {
+            RoadStatus calzada) {
         
         this.provincia = provincia;
         this.canton = canton;
@@ -43,9 +40,6 @@ public class FilterCriteria {
         this.severidad = severidad;
         this.clima = clima;
         this.calzada = calzada;
-        this.edadMin = edadMin;
-        this.edadMax = edadMax;
-        this.genero = genero;
     }
 
     public Province getProvincia() {
@@ -96,25 +90,12 @@ public class FilterCriteria {
         return calzada;
     }
 
-    public int getEdadMin() {
-        return edadMin;
-    }
-
-    public int getEdadMax() {
-        return edadMax;
-    }
-
-    public Gender getGenero() {
-        return genero;
-    }
-
     @Override
     public String toString() {
         return "FilterCriteria{" + "provincia=" + provincia + ", canton=" + canton + 
                 ", distrito=" + distrito + ", ruta=" + ruta + ", \nanio=" + anio + 
                 ", mes=" + mes + ", DiaSemana=" + DiaSemana + ", franja=" + franja + 
                 ", tipoVehiculo=" + tipoVehiculo + ", \nseveridad=" + severidad + 
-                ", clima=" + clima + ", calzada=" + calzada + ", edadMin=" + edadMin 
-                + ", edadMax=" + edadMax + ", genero=" + genero + '}';
+                ", clima=" + clima + ", calzada=" + calzada + '}';
     }
 }

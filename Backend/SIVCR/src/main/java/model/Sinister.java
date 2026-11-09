@@ -30,8 +30,7 @@ public class Sinister {
     public Sinister(Province provincia, String canton, String distrito, String ruta, 
                     double km, double lat, double length, VehycleType tipoVehiculo, 
                     Severity severidad, Climate clima, RoadStatus calzada, 
-                    double tiempoRespuestaMins, QualityStatus calidad, LocalDateTime fecha,
-                    int edad, Gender genero, VictimCondition condicion) {
+                    double tiempoRespuestaMins, QualityStatus calidad, LocalDateTime fecha) {
         this.provincia = provincia;
         this.canton = canton;
         this.distrito = distrito;
@@ -46,6 +45,5 @@ public class Sinister {
         this.tiempoRespuestaMins = tiempoRespuestaMins;
         this.calidad = calidad;
         this.fecha = fecha;
-        this.victima = new Victim(edad, genero, condicion);
     }
 }

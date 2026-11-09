@@ -24,9 +24,6 @@ public class ConcreteFilterCriteriaBuilder implements FilterCriteriaBuilder {
     private Severity severidad;
     private Climate clima;
     private RoadStatus calzada;
-    private int edadMin;
-    private int edadMax;
-    private Gender genero;
     
     public ConcreteFilterCriteriaBuilder() {}
     
@@ -91,26 +88,15 @@ public class ConcreteFilterCriteriaBuilder implements FilterCriteriaBuilder {
     }
     
     @Override
-    public void setEdad(int min, int max) {
-        this.edadMin = min;
-        this.edadMax = max;
-    }
-    
-    @Override
-    public void setGenero(Gender g) {
-        this.genero = g;
-    }
-    
-    @Override
     public void reset() {
         this.filtro = new FilterCriteria(null, null, null, null, 0, 0, null,
-                                         null, null, null, null, null, 0, 0, null);
+                                         null, null, null, null, null);
     }
     
     @Override
     public void build() {
         this.filtro = new FilterCriteria(provincia, canton, distrito, ruta, anio, mes, diaSemana,
-                    franja, tipoVehiculo, severidad, clima, calzada, edadMin, edadMax, genero);
+                    franja, tipoVehiculo, severidad, clima, calzada);
     }
     
     public FilterCriteria getResult() {

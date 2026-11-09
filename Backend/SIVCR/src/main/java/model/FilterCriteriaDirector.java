@@ -33,10 +33,4 @@ public class FilterCriteriaDirector {
         builder.setClima(clima);
         builder.setCalzada(calzada);
     }
-    
-    public void makePerfilVictima(FilterCriteriaBuilder builder, int edadMin, 
-                                int edadMax, Gender genero) {
-        builder.setEdad(edadMin, edadMax);
-        builder.setGenero(genero);
-    }
 }
