@@ -32,6 +32,16 @@
             ],
             "styles": [
               "src/styles.scss"
+            ],
+            "allowedCommonJsDependencies": [
+              "canvg",
+              "core-js",
+              "rgbcolor",
+              "raf",
+              "html2canvas",
+              "svg-pathdata",
+              "stackblur-canvas",
+              "dompurify"
             ]
           },
           "configurations": {
@@ -44,8 +54,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "12kB",
+                  "maximumError": "16kB"
                 }
               ],
               "outputHashing": "all"

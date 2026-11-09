@@ -1,0 +1,252 @@
+$ancho: 288px;
+$ancho-colapsado: 76px;
+$alto-topbar: 64px;
+$punto-movil: 860px;
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--fondo);
+}
+
+/* ---------- Menú lateral ---------- */
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex-shrink: 0;
+  width: $ancho;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--azul);
+  color: #fff;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: width 0.2s ease;
+}
+
+.sidebar-header {
+  height: $alto-topbar;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem 0 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 1.15rem;
+}
+.marca-logo { font-size: 1.5rem; }
+
+.btn-icono {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover { background: rgba(255, 255, 255, 0.12); }
+}
+
+.btn-colapsar app-icon { transition: transform 0.2s; }
+.btn-cerrar-movil { display: none; }
+
+.menu {
+  flex: 1;
+  padding: 0.75rem 0.75rem 1.5rem;
+
+  ul { list-style: none; margin: 0; padding: 0; }
+  li + li { margin-top: 2px; }
+}
+
+.menu-seccion {
+  margin: 1.1rem 0.75rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+  &.activo { background: #fff; color: var(--azul); font-weight: 600; }
+  &:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+}
+
+.menu-etiqueta { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Área principal ---------- */
+.principal {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: $alto-topbar;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--borde);
+}
+
+.btn-hamburguesa {
+  display: none;
+  color: var(--azul);
+  &:hover { background: var(--fondo); }
+}
+
+.migas {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gris);
+  font-size: 0.9rem;
+
+  strong { color: var(--texto); font-weight: 600; }
+}
+.migas-sep { color: var(--borde); font-size: 1.1rem; }
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--azul-claro);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.usuario-datos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+}
+.usuario-nombre { font-size: 0.88rem; font-weight: 600; }
+
+.rol {
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+
+  &[data-rol='ADMIN'] { background: #ede7f6; color: #4527a0; }
+  &[data-rol='ANALISTA_TRANSITO'] { background: #e3f0fd; color: #0b3d91; }
+  &[data-rol='CONSULTOR_PUBLICO'] { background: #e6f4ea; color: #1b5e20; }
+}
+
+.btn-salir {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--gris);
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover { border-color: var(--rojo); color: var(--rojo); }
+}
+
+.contenido {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.backdrop { display: none; }
+
+/* ---------- Escritorio: menú colapsado a íconos ---------- */
+@media (min-width: #{$punto-movil + 1}) {
+  .shell.colapsado {
+    .sidebar { width: $ancho-colapsado; }
+    .sidebar-header { padding: 0; flex-direction: column; justify-content: center; gap: 0; }
+    .marca-texto,
+    .menu-etiqueta { display: none; }
+    .marca { display: none; }
+    .btn-colapsar app-icon { transform: rotate(180deg); }
+
+    .menu-seccion {
+      height: 1px;
+      margin: 0.9rem 0.5rem;
+      padding: 0;
+      font-size: 0;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .menu-item { justify-content: center; padding: 0.7rem; }
+  }
+}
+
+/* ---------- Móvil: menú como cajón ---------- */
+@media (max-width: $punto-movil) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .shell.movil-abierto {
+    .sidebar { transform: none; box-shadow: 0 0 40px rgba(0, 0, 0, 0.35); }
+    .backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  .btn-colapsar { display: none; }
+  .btn-cerrar-movil { display: grid; }
+  .btn-hamburguesa { display: grid; }
+  .topbar { padding: 0 1rem; }
+  .contenido { padding: 1rem; }
+}
+
+@media (max-width: 600px) {
+  .usuario-datos,
+  .btn-salir span { display: none; }
+}

@@ -1,0 +1,150 @@
+<section class="pagina">
+  <h1>Dashboard de siniestralidad vial</h1>
+  <p class="subtitulo">
+    Costa Rica 2023–2025 ·
+    @if (datos.esEjemplo()) {
+      <strong>datos de ejemplo</strong> ({{ est.totalRegistros() }} registros simulados, sin conexión al servidor)
+    } @else {
+      <strong>datos cargados desde archivo</strong> ({{ est.totalRegistros() }} registros; último archivo: {{ datos.origen().archivo }})
+    }
+  </p>
+
+  <app-panel-filtros [mostrando]="kpis().siniestros" [total]="est.totalRegistros()" />
+
+  <div class="kpis" aria-label="Indicadores clave">
+    @for (t of tarjetas(); track t.sigla) {
+      <app-tarjeta-kpi
+        [sigla]="t.sigla"
+        [nombre]="t.nombre"
+        [valor]="t.valor"
+        [unidad]="t.unidad"
+        [detalle]="t.detalle"
+        [formula]="t.formula"
+      />
+    }
+  </div>
+
+  @if (vacio()) {
+    <div class="vacio" role="status">
+      <h2>Ningún siniestro cumple estos filtros</h2>
+      <p>Prueba quitando alguno de los filtros para ver resultados.</p>
+      <button type="button" (click)="limpiar()">Limpiar filtros</button>
+    </div>
+  } @else {
+    <p class="ayuda">Haz clic en una barra, un segmento o un encabezado de los gráficos para filtrar; vuelve a hacer clic para quitar el filtro.</p>
+
+    <div class="graficos">
+      <app-tarjeta-grafico
+        titulo="Siniestralidad por provincia"
+        subtitulo="TSV: porcentaje de los siniestros del total nacional"
+      >
+        <app-barras-rankeadas
+          ariaLabel="Siniestros por provincia"
+          anchoEtiqueta="110px"
+          [columnasExtra]="['Siniestros']"
+          [filas]="filasProvincia()"
+          [seleccionadas]="selProvincia()"
+          (seleccionar)="alternarProvincia($event)"
+        />
+        <app-tabla-datos
+          descripcion="Siniestros por provincia"
+          [columnas]="['Provincia', 'TSV', 'Siniestros']"
+          [filas]="tablaProvincia()"
+        />
+      </app-tarjeta-grafico>
+
+      <app-tarjeta-grafico
+        titulo="Gravedad de los siniestros"
+        subtitulo="Más oscuro = más grave"
+      >
+        <app-dona
+          ariaLabel="Siniestros por gravedad"
+          [items]="est.porSeveridad()"
+          [seleccionadas]="f().severidades"
+          (seleccionar)="alternarSeveridad($event)"
+        />
+        <app-tabla-datos
+          descripcion="Siniestros por gravedad"
+          [columnas]="['Gravedad', 'Siniestros', '%']"
+          [filas]="tablaSeveridad()"
+        />
+      </app-tarjeta-grafico>
+
+      <app-tarjeta-grafico
+        titulo="¿Cuándo ocurren? Día y franja horaria"
+        subtitulo="Cantidad de siniestros; más oscuro = más siniestros"
+      >
+        <app-mapa-calor
+          ariaLabel="Siniestros por día de la semana y franja horaria"
+          [matriz]="est.matrizDiaFranja()"
+          [diasSel]="f().dias"
+          [franjasSel]="f().franjas"
+          (alternarDia)="alternarDia($event)"
+          (alternarFranja)="alternarFranja($event)"
+        />
+        <app-tabla-datos
+          descripcion="Siniestros por día de la semana y franja horaria"
+          [columnas]="columnasCalor()"
+          [filas]="tablaCalor()"
+        />
+      </app-tarjeta-grafico>
+
+      <app-tarjeta-grafico
+        titulo="¿Quiénes se ven involucrados? Edad y género"
+        subtitulo="Persona principal de cada siniestro"
+      >
+        <app-piramide
+          ariaLabel="Personas involucradas por rango de edad y género"
+          [perfil]="est.perfilDemografico()"
+          [edadesSel]="f().edades"
+          [generosSel]="f().generos"
+          (alternarEdad)="alternarEdad($event)"
+          (alternarGenero)="alternarGenero($event)"
+        />
+        <app-tabla-datos
+          descripcion="Personas involucradas por rango de edad y género"
+          [columnas]="['Rango de edad', 'Masculino', 'Femenino']"
+          [filas]="tablaPiramide()"
+        />
+      </app-tarjeta-grafico>
+
+      <app-tarjeta-grafico
+        titulo="Tipo de vehículo"
+        subtitulo="Siniestros y tasa de fatalidad (TFv: % con al menos un fallecido)"
+      >
+        <app-barras-rankeadas
+          ariaLabel="Siniestros por tipo de vehículo"
+          anchoEtiqueta="140px"
+          [columnasExtra]="['TFv']"
+          [filas]="filasVehiculo()"
+          [seleccionadas]="f().vehiculos"
+          (seleccionar)="alternarVehiculo($event)"
+        />
+        <app-tabla-datos
+          descripcion="Siniestros y tasa de fatalidad por tipo de vehículo"
+          [columnas]="['Vehículo', 'Siniestros', 'TFv']"
+          [filas]="tablaVehiculo()"
+        />
+      </app-tarjeta-grafico>
+
+      <app-tarjeta-grafico
+        titulo="Rutas con más siniestros"
+        subtitulo="Las 8 principales; la última columna es el porcentaje acumulado (Pareto)"
+      >
+        <app-barras-rankeadas
+          ariaLabel="Siniestros por ruta nacional"
+          anchoEtiqueta="80px"
+          [columnasExtra]="['Acum.']"
+          [filas]="filasRuta()"
+          [seleccionadas]="selRuta()"
+          (seleccionar)="alternarRuta($event)"
+        />
+        <app-tabla-datos
+          descripcion="Siniestros por ruta nacional con porcentaje acumulado"
+          [columnas]="['Ruta', 'Siniestros', '% acumulado']"
+          [filas]="tablaRuta()"
+        />
+      </app-tarjeta-grafico>
+    </div>
+  }
+</section>

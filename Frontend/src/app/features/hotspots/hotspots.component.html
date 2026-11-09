@@ -1,0 +1,355 @@
+<section class="pagina">
+  <h1>Hotspots de riesgo</h1>
+  <p class="subtitulo">
+    Tramos de carretera donde los siniestros se concentran más de lo que explicaría el azar. La búsqueda se hace
+    dentro de los siniestros que cumplen los filtros.
+  </p>
+
+  <app-panel-filtros
+    [mostrando]="filtrados().length"
+    [total]="est.totalRegistros()"
+    [inicialmenteAbierto]="false"
+  />
+
+  <!-- ===== Parámetros de la detección ===== -->
+  <section class="parametros" aria-label="Parámetros de la detección">
+    <div class="campos">
+      <label class="campo">
+        <span>Largo del tramo</span>
+        <select (change)="cambiarNumero('longitud', $event)">
+          @for (l of longitudes; track l) {
+            <option [value]="l" [selected]="l === longitud()">{{ l }} km</option>
+          }
+        </select>
+      </label>
+
+      <label class="campo">
+        <span>Mínimo de siniestros</span>
+        <select (change)="cambiarNumero('minimo', $event)">
+          @for (m of minimos; track m) {
+            <option [value]="m" [selected]="m === minimo()">{{ m }} siniestros</option>
+          }
+        </select>
+      </label>
+
+      <fieldset class="campo exigencia">
+        <legend>Exigencia estadística</legend>
+        <div class="segmentos">
+          @for (e of exigencias; track e.alfa) {
+            <label class="segmento" [class.activo]="e.alfa === alfa()">
+              <input type="radio" name="exigencia" [checked]="e.alfa === alfa()" (change)="cambiarAlfa(e.alfa)" />
+              {{ e.texto }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <button type="button" class="enlace" [disabled]="parametrosPorDefecto()" (click)="restablecerParametros()">
+        Restablecer
+      </button>
+    </div>
+
+    <details class="como">
+      <summary>¿Cómo se detectan?</summary>
+      <ol>
+        <li>
+          Por cada ruta se desliza una ventana de <strong>{{ longitud() }} km</strong> y se cuentan los siniestros en
+          cada posición.
+        </li>
+        <li>
+          Se calcula cuántos habría en esa ventana si los siniestros de la ruta se repartieran parejo (lo
+          <em>esperado</em>) y qué tan improbable es, por casualidad, ver tantos o más (distribución de Poisson).
+        </li>
+        <li>
+          Como se revisan cientos de posiciones, algunas saldrían «raras» solo por suerte. Para evitar falsas alarmas
+          se exige una probabilidad mucho menor, según la <strong>exigencia</strong> elegida (Flexible 5 %, Estándar
+          1 %, Estricta 0,1 %).
+        </li>
+        <li>Las ventanas que pasan y se tocan se unen en un solo tramo, y se describe qué lo hace particular.</li>
+      </ol>
+      @if (explicacionRigor()) {
+        <p class="rigor">{{ explicacionRigor() }}</p>
+      }
+      <p class="aviso">
+        «Parejo» se mide sobre el tramo de cada ruta que aparece en los datos (del primer al último kilómetro con
+        siniestros), porque el sistema aún no conoce el largo real de cada ruta. Un hotspot es una alerta estadística:
+        indica dónde mirar, no explica la causa.
+      </p>
+    </details>
+  </section>
+
+  @if (vacioPorFiltros()) {
+    <div class="vacio" role="status">
+      <h2>Ningún siniestro cumple estos filtros</h2>
+      <p>Prueba quitando alguno de los filtros para analizar tramos.</p>
+      <button type="button" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+  } @else {
+    <!-- ===== Indicadores ===== -->
+    <div class="kpis" aria-label="Resumen de la detección">
+      @for (t of tarjetas(); track t.sigla) {
+        <app-tarjeta-kpi
+          [sigla]="t.sigla"
+          [nombre]="t.nombre"
+          [valor]="t.valor"
+          [unidad]="t.unidad"
+          [detalle]="t.detalle"
+          [formula]="t.formula"
+        />
+      }
+    </div>
+
+    @if (resultado().sinKilometro > 0) {
+      <p class="nota" role="status">
+        {{ fmtEntero(resultado().sinKilometro) }} siniestros no tienen un kilómetro válido y no se pueden ubicar en una
+        ruta, así que quedaron fuera del análisis.
+      </p>
+    }
+
+    @if (hotspots().length === 0) {
+      <div class="vacio" role="status">
+        <h2>No se encontraron hotspots con estos criterios</h2>
+        <p>
+          Los {{ fmtEntero(resultado().siniestrosAnalizados) }} siniestros analizados se reparten sin tramos que
+          destaquen. Puedes probar con una exigencia más flexible, un tramo más largo o un mínimo de siniestros menor.
+        </p>
+        @if (!parametrosPorDefecto()) {
+          <button type="button" (click)="restablecerParametros()">Restablecer parámetros</button>
+        }
+      </div>
+    }
+
+    <!-- ===== Mapa lineal ===== -->
+    <section class="tarjeta" aria-labelledby="t-mapa">
+      <header class="encabezado">
+        <h2 id="t-mapa">Mapa de rutas</h2>
+        <p>
+          Cada fila es una ruta, del km 0 hacia adelante. Las barras muestran cuántos siniestros hubo en cada bloque de
+          {{ mapa().ancho }} km; los números marcan los hotspots (el 1 es el más grave).
+        </p>
+      </header>
+
+      <ul class="leyenda" aria-label="Leyenda del mapa">
+        <li><span class="muestra-densidad" [style.background]="colorDensidad"></span> Siniestros por bloque</li>
+        @for (n of niveles; track n) {
+          <li>
+            <span class="muestra-nivel" [style.background]="estiloNivel[n].fondo" [style.color]="estiloNivel[n].texto" aria-hidden="true">{{ estiloNivel[n].forma }}</span>
+            Hotspot {{ textoNivel[n].toLowerCase() }}
+          </li>
+        }
+      </ul>
+
+      <div class="rutas">
+        <div class="fila eje" aria-hidden="true">
+          <span class="unidad-eje">km</span>
+          <div class="escala">
+            @for (t of mapa().ejes; track t.km) {
+              <span class="tic" [style.left.%]="t.pos">{{ t.km }}</span>
+            }
+          </div>
+        </div>
+
+        @for (fila of mapa().filas; track fila.ruta) {
+          <div class="fila" [class.sin-analizar]="!fila.analizada">
+            <span class="nombre">{{ fila.ruta }}</span>
+            <div class="pista">
+              <div class="densidad" [style.grid-template-columns]="'repeat(' + mapa().bloquesTotales + ', 1fr)'">
+                @for (b of fila.bloques; track $index) {
+                  <span class="bloque" [attr.data-tip]="b.tip">
+                    <span class="relleno" [class.hay]="b.alto > 0" [style.height.%]="b.alto" [style.background]="colorDensidad"></span>
+                  </span>
+                }
+              </div>
+              <div class="marcas">
+                @for (m of fila.marcas; track m.h.id) {
+                  <button
+                    type="button"
+                    class="marca"
+                    [class.activa]="esSeleccionado(m.h)"
+                    [style.left.%]="m.izquierda"
+                    [style.width.%]="m.ancho"
+                    [style.background]="estiloNivel[m.h.nivel].fondo"
+                    [style.color]="estiloNivel[m.h.nivel].texto"
+                    [attr.data-tip]="tipMarca(m.h, m.puesto)"
+                    [attr.aria-label]="'Hotspot ' + m.puesto + ': ' + etiquetaTramo(m.h) + ', nivel ' + textoNivel[m.h.nivel].toLowerCase()"
+                    [attr.aria-pressed]="esSeleccionado(m.h)"
+                    (click)="seleccionar(m.h, true)"
+                  >{{ m.puesto }}</button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (sinAnalizar().length > 0) {
+        <p class="pie">
+          Sin analizar por tener menos de {{ minimo() }} siniestros: {{ sinAnalizar().join(', ') }}.
+        </p>
+      }
+    </section>
+
+    @if (hotspots().length > 0) {
+      <div class="cuerpo">
+        <!-- ===== Ranking ===== -->
+        <section class="tarjeta ranking" aria-labelledby="t-ranking">
+          <header class="barra">
+            <h2 id="t-ranking">Ranking de hotspots</h2>
+            <div class="herramientas">
+              <label class="orden">
+                <span>Ordenar por</span>
+                <select (change)="cambiarOrden($event)">
+                  @for (c of criterios; track c.valor) {
+                    <option [value]="c.valor" [selected]="c.valor === orden()">{{ c.texto }}</option>
+                  }
+                </select>
+              </label>
+              <button type="button" class="btn" (click)="exportarRanking()">
+                <app-icon name="descargar" /> CSV
+              </button>
+            </div>
+          </header>
+
+          <div class="contenedor" role="region" aria-label="Ranking de hotspots, con desplazamiento" tabindex="0">
+            <table>
+              <caption class="solo-lectores">
+                Hotspots detectados, página {{ paginaEfectiva() }} de {{ cantidadPaginas() }}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="num">#</th>
+                  <th scope="col">Tramo</th>
+                  <th scope="col">Nivel</th>
+                  <th scope="col" class="num">Siniestros</th>
+                  <th scope="col" class="num sec">Veces lo esperado</th>
+                  <th scope="col" class="num">Fallecidos</th>
+                  <th scope="col" class="num sec">ISS</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (h of filas(); track h.id) {
+                  <tr [class.seleccionada]="esSeleccionado(h)" (click)="seleccionar(h)">
+                    <td class="num puesto">{{ puestos().get(h.id) }}</td>
+                    <td class="c-tramo">
+                      <button type="button" class="tramo" [attr.aria-pressed]="esSeleccionado(h)" (click)="seleccionar(h); $event.stopPropagation()">
+                        <strong>{{ etiquetaTramo(h) }}</strong>
+                        <span class="donde" [attr.title]="ubicacion(h)">{{ ubicacion(h) }}</span>
+                      </button>
+                    </td>
+                    <td class="c-nivel">
+                      <span class="nivel" [style.background]="estiloNivel[h.nivel].fondo" [style.color]="estiloNivel[h.nivel].texto">
+                        <span aria-hidden="true">{{ estiloNivel[h.nivel].forma }}</span> {{ textoNivel[h.nivel] }}
+                      </span>
+                    </td>
+                    <td class="num c-sin" data-label="Siniestros">{{ fmtEntero(h.siniestros) }}</td>
+                    <td class="num sec">{{ fmtDec1(h.razon) }}×</td>
+                    <td class="num c-fall" data-label="Fallecidos">{{ fmtEntero(h.fallecidos) }}</td>
+                    <td class="num sec">{{ fmtDec1(h.iss) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <app-paginador
+            unidad="hotspots"
+            [pagina]="paginaEfectiva()"
+            [tamanio]="tamanio()"
+            [total]="ordenados().length"
+            [opcionesTamanio]="[5, 10, 25]"
+            (cambiarPagina)="pagina.set($event)"
+            (cambiarTamanio)="cambiarTamanio($event)"
+          />
+        </section>
+
+        <!-- ===== Detalle del tramo ===== -->
+        @if (seleccionado(); as h) {
+          <section #detalle class="tarjeta detalle" aria-labelledby="t-detalle" aria-live="polite">
+            <header class="encabezado">
+              <h2 id="t-detalle">#{{ puestos().get(h.id) }} · {{ etiquetaTramo(h) }}</h2>
+              <p>
+                {{ ubicacion(h) }}
+                <span class="nivel" [style.background]="estiloNivel[h.nivel].fondo" [style.color]="estiloNivel[h.nivel].texto">
+                  <span aria-hidden="true">{{ estiloNivel[h.nivel].forma }}</span> {{ textoNivel[h.nivel] }}
+                </span>
+              </p>
+            </header>
+
+            <div class="acciones">
+              <button type="button" class="btn primario" (click)="verEnExplorador(h)">
+                Ver {{ h.ruta }} en el explorador
+              </button>
+              <button type="button" class="btn" (click)="exportarRegistros(h)">
+                <app-icon name="descargar" /> Siniestros del tramo (CSV)
+              </button>
+            </div>
+            <p class="menor">
+              El explorador filtra por ruta completa; el CSV trae solo los {{ fmtEntero(h.registros.length) }} siniestros de
+              los km {{ h.kmInicio }} a {{ h.kmFin }}.
+            </p>
+
+            <dl class="datos">
+              <div>
+                <dt>Siniestros</dt>
+                <dd>{{ fmtEntero(h.siniestros) }}</dd>
+                <dd class="menor">se esperaban {{ fmtDec1(h.esperados) }} ({{ fmtDec1(h.razon) }}×)</dd>
+              </div>
+              <div>
+                <dt>Fallecidos</dt>
+                <dd>{{ fmtEntero(h.fallecidos) }}</dd>
+                <dd class="menor">en {{ fmtEntero(h.siniestrosConFallecidos) }} siniestros</dd>
+              </div>
+              <div>
+                <dt>Heridos</dt>
+                <dd>{{ fmtEntero(h.heridosGraves + h.heridosLeves) }}</dd>
+                <dd class="menor">{{ fmtEntero(h.heridosGraves) }} graves · {{ fmtEntero(h.heridosLeves) }} leves</dd>
+              </div>
+              <div>
+                <dt>ISS del tramo</dt>
+                <dd>{{ fmtDec1(h.iss) }}</dd>
+                <dd class="menor">gravedad acumulada {{ fmtEntero(h.severidadAcumulada) }}</dd>
+              </div>
+            </dl>
+
+            <p class="casualidad">
+              Probabilidad de que sea casualidad: <strong>{{ textoProbabilidad(h.pAjustado) }}</strong>
+              <span class="menor">(ya corregida por los {{ fmtEntero(resultado().tramosEvaluados) }} tramos revisados)</span>
+            </p>
+
+            <h3>Qué destaca de este tramo</h3>
+            @if (h.hallazgos.length > 0) {
+              <ul class="hallazgos">
+                @for (x of h.hallazgos; track x.clave) {
+                  <li><span class="etiqueta">{{ x.etiqueta }}</span> {{ x.texto }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="menor">
+                Ninguna característica (horario, día, vehículo, clima…) se aparta claramente del resto de los datos:
+                en este tramo simplemente ocurren más siniestros de lo normal.
+              </p>
+            }
+
+            <h3>Cuándo ocurren</h3>
+            <app-mapa-calor
+              [matriz]="h.matriz"
+              [soloLectura]="true"
+              ariaLabel="Siniestros del tramo por día de la semana y franja horaria"
+            />
+
+            <h3>Por año</h3>
+            <div class="anios">
+              @for (a of porAnio(h); track a.anio) {
+                <div class="anio">
+                  <span>{{ a.anio }}</span>
+                  <span class="pista-anio"><span class="relleno-anio" [style.width.%]="a.ancho"></span></span>
+                  <span class="valor-anio">{{ fmtEntero(a.n) }}</span>
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+  }
+</section>

@@ -1,0 +1,320 @@
+<section class="pagina">
+  <h1>Predicción de riesgo</h1>
+  <p class="subtitulo">
+    Elija el clima, el estado de la calzada y la franja horaria: el sistema estima qué tan frecuentes son los siniestros
+    en esas condiciones y qué tan graves resultan, comparado con el promedio.
+  </p>
+
+  @if (modelo(); as m) {
+    <p class="nota-datos">
+      El modelo se entrena con los <strong>{{ fmtEntero(m.entrenadoCon) }}</strong> siniestros cargados (todos, sin
+      aplicar los filtros del dashboard) y se recalcula al cargar datos nuevos.
+    </p>
+
+    @if (pocosDatos()) {
+      <p class="alerta" role="alert">
+        Hay menos de {{ minimoModelo }} siniestros cargados: con tan pocos datos las estimaciones son muy poco confiables.
+      </p>
+    }
+    @if (!m.convergio) {
+      <p class="alerta" role="alert">
+        El ajuste del modelo no terminó de converger con estos datos; tome las cifras con mucha cautela.
+      </p>
+    }
+
+    <div class="superior">
+      <!-- ===== Escenario ===== -->
+      <section class="tarjeta escenario" aria-labelledby="t-escenario">
+        <header class="encabezado">
+          <h2 id="t-escenario">Escenario</h2>
+          <p>Condiciones que quiere evaluar.</p>
+        </header>
+
+        <div class="grupos">
+          <app-opciones-unica etiqueta="Clima" [opciones]="climas" [valor]="escenario().clima" (cambio)="elegirClima($event)" />
+          <app-opciones-unica etiqueta="Estado de la calzada" [opciones]="calzadas" [valor]="escenario().calzada" (cambio)="elegirCalzada($event)" />
+          <app-opciones-unica etiqueta="Franja horaria" [opciones]="franjas" [valor]="escenario().franja" (cambio)="elegirFranja($event)" />
+        </div>
+
+        <button type="button" class="secundario" (click)="usarHoraActual()">Usar la hora actual</button>
+        <p class="menor">
+          La hora actual solo cambia la franja. El clima y el estado de la calzada hay que elegirlos a mano: el sistema
+          todavía no está conectado al Instituto Meteorológico Nacional.
+        </p>
+        <p class="menor franjas-ayuda">Madrugada 0–5 h · Mañana 6–11 h · Tarde 12–17 h · Noche 18–23 h</p>
+      </section>
+
+      <!-- ===== Resultado ===== -->
+      @if (estimacion(); as e) {
+        <section class="tarjeta resultado" aria-labelledby="t-resultado" aria-live="polite">
+          <header class="encabezado">
+            <h2 id="t-resultado">Riesgo estimado</h2>
+            <p>{{ e.escenario.clima }} · calzada {{ e.escenario.calzada.toLowerCase() }} · {{ e.escenario.franja }}</p>
+          </header>
+
+          <div class="veredicto">
+            <span class="nivel" [style.background]="estiloNivel[e.nivel].fondo" [style.color]="estiloNivel[e.nivel].texto">
+              <span aria-hidden="true">{{ estiloNivel[e.nivel].forma }}</span>
+              Riesgo {{ textoNivel[e.nivel].toLowerCase() }}
+            </span>
+            <p class="indice">
+              <strong class="indice-valor">{{ fmtDec1(e.indice) }}×</strong>
+              <span class="indice-texto"
+                    data-tip="Índice combinado = frecuencia relativa × (probabilidad de que sea grave ÷ la probabilidad promedio). 1,0× es el promedio."
+                    tabindex="0">el riesgo promedio</span>
+            </p>
+          </div>
+
+          <p class="frase">{{ frase() }}</p>
+
+          @if (lectura(); as l) {
+            <dl class="metricas">
+              <div class="metrica">
+                <dt>Frecuencia de siniestros</dt>
+                <dd>
+                  <strong>{{ fmtDec2(e.frecuencia) }}×</strong>
+                  <span class="ic">IC 95 %: {{ fmtDec2(e.frecuenciaIC[0]) }}–{{ fmtDec2(e.frecuenciaIC[1]) }}</span>
+                  <span class="cmp" [class]="'cmp ' + l.frecuencia">{{ textoComparacion[l.frecuencia] }}</span>
+                </dd>
+              </div>
+              <div class="metrica">
+                <dt>Si ocurre un siniestro: grave o mortal</dt>
+                <dd>
+                  <strong>{{ fmtPct(e.pGrave * 100) }}</strong>
+                  <span class="ic">IC 95 %: {{ fmtPct(e.pGraveIC[0] * 100) }}–{{ fmtPct(e.pGraveIC[1] * 100) }}</span>
+                  <span class="cmp" [class]="'cmp ' + l.gravedad">{{ textoComparacion[l.gravedad] }} ({{ fmtPct(m.base.pGrave * 100) }})</span>
+                </dd>
+              </div>
+              <div class="metrica">
+                <dt>Si ocurre un siniestro: mortal</dt>
+                <dd>
+                  <strong>{{ fmtPct(e.pMortal * 100) }}</strong>
+                  <span class="ic">IC 95 %: {{ fmtPct(e.pMortalIC[0] * 100) }}–{{ fmtPct(e.pMortalIC[1] * 100) }}</span>
+                  <span class="cmp" [class]="'cmp ' + l.mortalidad">{{ textoComparacion[l.mortalidad] }} ({{ fmtPct(m.base.pMortal * 100) }})</span>
+                </dd>
+              </div>
+            </dl>
+          }
+
+          @if (e.soporte < soporteMinimo) {
+            <p class="aviso-soporte" role="note">
+              <strong>Pocos casos reales.</strong>
+              @if (e.soporte === 0) {
+                No hay ningún siniestro registrado con esta combinación exacta;
+              } @else {
+                Solo hay {{ fmtEntero(e.soporte) }} {{ e.soporte === 1 ? 'siniestro registrado' : 'siniestros registrados' }} con esta combinación exacta;
+              }
+              la estimación se apoya sobre todo en lo que el modelo deduce de las otras combinaciones y es menos segura.
+            </p>
+          } @else {
+            <p class="menor">Hay {{ fmtEntero(e.soporte) }} siniestros registrados con esta combinación exacta.</p>
+          }
+
+          <p class="menor niveles-ayuda">
+            Niveles según el índice: bajo &lt; {{ fmtDec2(umbrales.moderado) }}× · moderado &lt; {{ fmtDec1(umbrales.alto) }}× ·
+            alto &lt; {{ fmtDec1(umbrales.muyAlto) }}× · muy alto desde {{ fmtDec1(umbrales.muyAlto) }}×. Es una convención de
+            trabajo, no una norma oficial.
+          </p>
+        </section>
+      }
+    </div>
+
+    <!-- ===== Curvas por factor ===== -->
+    @if (curvas(); as c) {
+      <app-tarjeta-grafico
+        titulo="Cómo cambia el riesgo con cada factor"
+        subtitulo="Se mueve un solo factor y los otros dos quedan como en el escenario elegido. Toque una barra para elegir ese valor."
+      >
+        <div class="curvas">
+          <app-grafico-factor titulo="Clima" factor="clima" [estimaciones]="c.clima" [escala]="escalaIndice()"
+                              [seleccionado]="escenario().clima" (elegir)="elegirNivel('clima', $event)" />
+          <app-grafico-factor titulo="Estado de la calzada" factor="calzada" [estimaciones]="c.calzada" [escala]="escalaIndice()"
+                              [seleccionado]="escenario().calzada" (elegir)="elegirNivel('calzada', $event)" />
+          <app-grafico-factor titulo="Franja horaria" factor="franja" [estimaciones]="c.franja" [escala]="escalaIndice()"
+                              [seleccionado]="escenario().franja" (elegir)="elegirNivel('franja', $event)" />
+        </div>
+        <ul class="leyenda">
+          <li><span class="m-barra elegida"></span> Valor del escenario elegido</li>
+          <li><span class="m-barra"></span> Otros valores</li>
+          <li><span class="m-ref"></span> Promedio (1,0×)</li>
+        </ul>
+        <app-tabla-datos
+          descripcion="Índice de riesgo, frecuencia, porcentaje de siniestros graves o mortales y siniestros observados al cambiar cada factor"
+          [columnas]="['Factor', 'Valor', 'Índice', 'Frecuencia', '% grave o mortal', 'Observados']"
+          [filas]="tablaCurvas()"
+        />
+      </app-tarjeta-grafico>
+    }
+
+    <!-- ===== Dispersión ===== -->
+    <div class="separador"></div>
+    <section class="tarjeta" aria-labelledby="t-dispersion">
+      <header class="encabezado con-accion">
+        <div>
+          <h2 id="t-dispersion">Las 60 combinaciones de un vistazo</h2>
+          <p>
+            Arriba a la derecha están las condiciones donde los siniestros son más frecuentes <em>y</em> más graves. Toque un
+            punto para elegir esa combinación.
+          </p>
+        </div>
+        <button type="button" class="secundario" (click)="exportar()">
+          <app-icon name="descargar" /> Descargar CSV
+        </button>
+      </header>
+      <app-grafico-dispersion [estimaciones]="todas()" [seleccionado]="escenario()" [baseGrave]="m.base.pGrave"
+                              (elegir)="elegirEscenario($event)" />
+    </section>
+
+    <!-- ===== Supuestos y calidad ===== -->
+    <section class="tarjeta" aria-labelledby="t-supuestos">
+      <header class="encabezado">
+        <h2 id="t-supuestos">Supuestos y calidad del modelo</h2>
+        <p>Lo que hay que saber para no leer más de lo que los datos dicen.</p>
+      </header>
+
+      <div class="supuestos">
+        <div class="calidad">
+          <h3>Calidad</h3>
+          @if (m.calidad; as q) {
+            <p>
+              Para separar siniestros graves de leves, el modelo logra un
+              <strong class="auc" data-tip="AUC: 0,5 equivale a lanzar una moneda; 1,0 sería perfecto." tabindex="0">AUC de {{ fmtDec2(q.auc) }}</strong>@if (interpretacionAuc(); as i) {: <strong>{{ i.texto }}</strong>.}
+            </p>
+            <p class="menor">
+              Se midió con {{ fmtEntero(q.evaluadoCon) }} siniestros (20 %) que el modelo no vio al ajustarse.
+              Para «mortal» el AUC es {{ fmtDec2(q.aucMortal) }}.
+            </p>
+            @if (interpretacionAuc(); as i) {
+              @if (!i.util) {
+                <p class="aviso-soporte">
+                  Con estos datos, el clima, la calzada y la franja explican muy poco de <em>qué tan grave</em> resulta un siniestro.
+                  La parte de gravedad de la estimación casi no aporta información; la de frecuencia sí.
+                </p>
+              } @else if (i.orientativa) {
+                <p class="nota-calidad">
+                  Una capacidad débil significa que el clima, la calzada y la franja explican poco de <em>qué tan grave</em> resulta
+                  un siniestro: tome la parte de gravedad como orientación y fíjese en los intervalos.
+                </p>
+              }
+            }
+          } @else {
+            <p class="menor">Hay muy pocos siniestros para apartar una parte y medir la calidad del modelo.</p>
+          }
+
+          <details class="como">
+            <summary>¿Cómo se calcula?</summary>
+            <ol>
+              <li>
+                <strong>Frecuencia.</strong> Se cuentan los siniestros de cada una de las 60 combinaciones y se dividen entre el
+                tiempo que esa combinación existe (la exposición). Sin esto, «despejado» siempre parecería lo más peligroso solo
+                por ser lo más común. Se ajusta una regresión de Poisson.
+              </li>
+              <li>
+                <strong>Gravedad.</strong> Entre los siniestros que ocurrieron, se ajusta una regresión logística que estima la
+                probabilidad de que sean graves o mortales. Esta parte usa solo los datos, sin supuestos.
+              </li>
+              <li>
+                <strong>Índice.</strong> Frecuencia relativa × gravedad relativa. 1,0× es el promedio de todas las condiciones.
+              </li>
+              <li>
+                <strong>Intervalos.</strong> El «IC 95 %» es el rango donde, con los datos disponibles, está el valor real con 95 % de
+                confianza. Si el promedio cae dentro del rango, el sistema no afirma que haya diferencia.
+              </li>
+            </ol>
+          </details>
+        </div>
+
+        <div class="exposicion">
+          <div class="exposicion-encabezado">
+            <h3>Exposición <span class="etiqueta-supuesto">supuesto, no dato medido</span></h3>
+            <button type="button" class="enlace" [disabled]="riesgo.exposicionPorDefecto()" (click)="restablecerExposicion()">
+              Restablecer
+            </button>
+          </div>
+          <p class="menor">
+            ¿Qué porcentaje del tiempo se da cada condición? El sistema aún no tiene series de lluvia ni de tránsito (vendrán del
+            IMN y del COSEVI), así que estos porcentajes son una suposición de trabajo. <strong>Cambiarlos cambia el resultado</strong>.
+          </p>
+
+          <div class="tablas-exposicion">
+            <table class="tabla-expo">
+              <caption>Clima</caption>
+              <tbody>
+                @for (c of climas; track c) {
+                  <tr>
+                    <th scope="row"><label [for]="'expo-clima-' + $index">{{ c }}</label></th>
+                    <td>
+                      <input type="number" min="0" max="100" step="1" inputmode="decimal" [id]="'expo-clima-' + $index"
+                             [value]="riesgo.exposicion().clima[c]" (change)="cambiarExposicion('clima', c, $event)" />
+                      <span class="pc">%</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr [class.desajustada]="sumaClima() !== 100">
+                  <th scope="row">Suma</th>
+                  <td>{{ sumaClima() }} %</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <table class="tabla-expo">
+              <caption>Estado de la calzada</caption>
+              <tbody>
+                @for (c of calzadas; track c) {
+                  <tr>
+                    <th scope="row"><label [for]="'expo-calzada-' + $index">{{ c }}</label></th>
+                    <td>
+                      <input type="number" min="0" max="100" step="1" inputmode="decimal" [id]="'expo-calzada-' + $index"
+                             [value]="riesgo.exposicion().calzada[c]" (change)="cambiarExposicion('calzada', c, $event)" />
+                      <span class="pc">%</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr [class.desajustada]="sumaCalzada() !== 100">
+                  <th scope="row">Suma</th>
+                  <td>{{ sumaCalzada() }} %</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          @if (sumaClima() !== 100 || sumaCalzada() !== 100) {
+            <p class="menor">Si un grupo no suma 100 %, el sistema reescala los porcentajes para que sumen 100 %.</p>
+          }
+          <p class="menor">Las franjas duran 6 horas cada una, así que cada una pesa 25 % (no se edita).</p>
+        </div>
+      </div>
+
+      <h3 class="limites-titulo">Límites que conviene tener presentes</h3>
+      <ul class="limites">
+        <li>
+          La frecuencia es <strong>relativa</strong> («veces el promedio»), no una probabilidad absoluta de sufrir un siniestro:
+          para eso harían falta datos de tránsito (vehículos-kilómetro).
+        </li>
+        <li>
+          El modelo suma el efecto de cada factor por separado, sin interacciones. También estima combinaciones casi imposibles
+          (lluvia fuerte con calzada seca); fíjese en cuántos casos reales las respaldan.
+        </li>
+        <li>
+          El clima y la calzada de este momento no se leen de ninguna fuente: se eligen a mano hasta conectar el IMN.
+        </li>
+        <li>
+          Es un modelo estadístico sencillo para orientar decisiones, no un sistema de predicción validado. Con datos reales
+          conviene revisarlo con un especialista antes de apoyarse en él.
+        </li>
+      </ul>
+    </section>
+  } @else {
+    <section class="vacio">
+      <h2>Aún no hay siniestros para calcular el riesgo</h2>
+      <p>
+        El modelo aprende de los siniestros cargados. Cuando haya datos, aquí aparecerán las estimaciones por clima, calzada y
+        franja horaria.
+      </p>
+      <a routerLink="/ingesta" class="boton-vacio">Ir a Carga de datos</a>
+    </section>
+  }
+</section>

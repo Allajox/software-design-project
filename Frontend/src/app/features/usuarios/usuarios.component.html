@@ -1,0 +1,232 @@
+<section class="pagina">
+  <h1>Usuarios y roles</h1>
+  <p class="subtitulo">
+    Cree cuentas, asigne uno de los tres perfiles del sistema y desactive el acceso cuando haga falta.
+    Esta pantalla solo la ve el Administrador.
+  </p>
+
+  @if (modoDemo) {
+    <p class="aviso-demo">
+      <strong>Modo demostración:</strong> las cuentas se guardan solo en este navegador. Con el servidor real,
+      estas mismas acciones se harán contra la base de datos, y el servidor será quien revise el rol en cada petición.
+    </p>
+  }
+
+  <!-- ===== Resumen ===== -->
+  <ul class="resumen" aria-label="Resumen de cuentas">
+    @for (r of roles; track r) {
+      <li class="mini-kpi">
+        <span class="rol" [attr.data-rol]="r">{{ etiqueta[r] }}</span>
+        <span class="cifra">{{ resumen().activasPorRol[r] }}</span>
+        <span class="detalle">{{ resumen().activasPorRol[r] === 1 ? 'cuenta activa' : 'cuentas activas' }}</span>
+      </li>
+    }
+    <li class="mini-kpi">
+      <span class="rotulo">Desactivadas</span>
+      <span class="cifra">{{ resumen().desactivadas }}</span>
+      <span class="detalle">de {{ resumen().total }} {{ resumen().total === 1 ? 'cuenta' : 'cuentas' }} en total</span>
+    </li>
+  </ul>
+
+  <!-- ===== Cuentas ===== -->
+  <section class="tarjeta cuentas" aria-labelledby="titulo-cuentas">
+    <header class="cab">
+      <h2 id="titulo-cuentas">Cuentas</h2>
+      <button type="button" class="btn primario" (click)="nueva()">
+        <app-icon name="mas" /> Nueva cuenta
+      </button>
+    </header>
+
+    <div class="filtros" role="search">
+      <div class="campo-filtro buscar">
+        <label for="f-texto">Buscar por nombre o correo</label>
+        <input id="f-texto" type="search" autocomplete="off" placeholder="Ej.: carla"
+               [value]="filtro().texto" (input)="cambiarTexto($any($event.target).value)" />
+      </div>
+      <div class="campo-filtro">
+        <label for="f-rol">Rol</label>
+        <select id="f-rol" [value]="filtro().rol" (change)="cambiarRol($any($event.target).value)">
+          <option value="">Todos los roles</option>
+          @for (r of roles; track r) { <option [value]="r" [selected]="filtro().rol === r">{{ etiqueta[r] }}</option> }
+        </select>
+      </div>
+      <div class="campo-filtro">
+        <label for="f-estado">Estado</label>
+        <select id="f-estado" [value]="filtro().estado" (change)="cambiarEstado($any($event.target).value)">
+          <option value="todos" [selected]="filtro().estado === 'todos'">Todas</option>
+          <option value="activos" [selected]="filtro().estado === 'activos'">Activas</option>
+          <option value="desactivados" [selected]="filtro().estado === 'desactivados'">Desactivadas</option>
+        </select>
+      </div>
+      @if (hayFiltro()) {
+        <button type="button" class="enlace" (click)="limpiarFiltros()">Quitar filtros</button>
+      }
+    </div>
+
+    <p class="conteo" aria-live="polite">
+      Mostrando {{ fmtEntero(filas().length) }} de {{ fmtEntero(resumen().total) }}
+      {{ resumen().total === 1 ? 'cuenta' : 'cuentas' }}
+    </p>
+
+    @if (filas().length === 0) {
+      <div class="vacio">
+        <p>Ninguna cuenta coincide con la búsqueda.</p>
+        <button type="button" class="enlace" (click)="limpiarFiltros()">Quitar filtros</button>
+      </div>
+    } @else {
+      <table class="tabla" role="table" aria-labelledby="titulo-cuentas">
+        <thead>
+          <tr role="row">
+            <th scope="col">Persona</th>
+            <th scope="col">Rol</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Último acceso</th>
+            <th scope="col"><span class="solo-lectores">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filas(); track f.id) {
+            <tr role="row" [class.desactivada]="!f.activo" [attr.data-correo]="f.correo">
+              <td role="cell" data-label="Persona">
+                <div class="persona">
+                  <span class="avatar" aria-hidden="true">{{ f.iniciales }}</span>
+                  <div class="datos">
+                    <strong class="nombre">{{ f.nombre }}
+                      @if (f.esActual) { <span class="yo">Usted</span> }
+                    </strong>
+                    <span class="correo">{{ f.correo }}</span>
+                  </div>
+                </div>
+              </td>
+              <td role="cell" data-label="Rol"><span class="rol" [attr.data-rol]="f.rol">{{ f.rolEtiqueta }}</span></td>
+              <td role="cell" data-label="Estado">
+                <span class="estado" [class.apagado]="!f.activo">
+                  <app-icon [name]="f.activo ? 'aplicar' : 'cerrar'" />
+                  {{ f.activo ? 'Activa' : 'Desactivada' }}
+                </span>
+              </td>
+              <td role="cell" data-label="Último acceso" class="acceso">{{ f.acceso }}</td>
+              <td role="cell" class="celda-acciones">
+                <div class="acciones">
+                  <button type="button" (click)="editar(f)" [attr.aria-label]="'Editar a ' + f.nombre">
+                    <app-icon name="editar" /> Editar
+                  </button>
+
+                  <button type="button" class="btn-alternar" (click)="alternar(f)"
+                          [attr.aria-label]="(f.activo ? 'Desactivar a ' : 'Reactivar a ') + f.nombre"
+                          [attr.aria-disabled]="f.motivoDesactivar ? 'true' : null"
+                          [attr.aria-describedby]="f.motivoDesactivar ? 'mot-des-' + f.id : null"
+                          [attr.data-tip]="f.motivoDesactivar" data-tip-der>
+                    <app-icon [name]="f.activo ? 'cerrar' : 'aplicar'" /> {{ f.activo ? 'Desactivar' : 'Reactivar' }}
+                  </button>
+                  @if (f.motivoDesactivar) { <span class="solo-lectores" [id]="'mot-des-' + f.id">{{ f.motivoDesactivar }}</span> }
+
+                  <button type="button" class="peligro btn-eliminar" (click)="pedirEliminar(f)"
+                          [attr.aria-label]="'Eliminar a ' + f.nombre"
+                          [attr.aria-disabled]="f.motivoEliminar ? 'true' : null"
+                          [attr.aria-describedby]="f.motivoEliminar ? 'mot-eli-' + f.id : null"
+                          [attr.data-tip]="f.motivoEliminar" data-tip-der>
+                    <app-icon name="papelera" /> Eliminar
+                  </button>
+                  @if (f.motivoEliminar) { <span class="solo-lectores" [id]="'mot-eli-' + f.id">{{ f.motivoEliminar }}</span> }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+
+  <!-- ===== Qué puede hacer cada rol ===== -->
+  <section class="tarjeta" aria-labelledby="titulo-permisos">
+    <h2 id="titulo-permisos">¿Qué puede hacer cada rol?</h2>
+    <p class="nota">
+      Los permisos salen de la misma configuración que arma el menú lateral y protege las rutas,
+      así que esta tabla no puede quedar desactualizada.
+    </p>
+
+    <dl class="roles-def">
+      @for (r of roles; track r) {
+        <div>
+          <dt><span class="rol" [attr.data-rol]="r">{{ etiqueta[r] }}</span></dt>
+          <dd>{{ descripcion[r] }}</dd>
+        </div>
+      }
+    </dl>
+
+    <table class="matriz">
+      <caption class="solo-lectores">Pantallas a las que puede entrar cada rol</caption>
+      <thead>
+        <tr>
+          <th scope="col">Pantalla</th>
+          @for (r of roles; track r) { <th scope="col">{{ etiqueta[r] }}</th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of permisos; track p.ruta) {
+          <tr>
+            <th scope="row">{{ p.etiqueta }} <small>{{ p.seccion }}</small></th>
+            @for (r of roles; track r) {
+              <td>
+                @if (p.porRol[r]) {
+                  <span class="si"><app-icon name="aplicar" /> Sí</span>
+                } @else {
+                  <span class="no"><span aria-hidden="true">—</span> No</span>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== Supuestos y límites ===== -->
+  <section class="tarjeta" aria-labelledby="titulo-limites">
+    <h2 id="titulo-limites">Supuestos y límites</h2>
+    <ul class="limites">
+      <li>
+        <strong>Seguridad real = servidor.</strong> Ocultar el menú y bloquear rutas es comodidad de uso: quien manipule el
+        navegador puede saltárselo. En el sistema real, el servidor debe verificar el rol en cada petición.
+      </li>
+      <li>
+        <strong>Contraseñas.</strong> Se guardan con PBKDF2-SHA-256 (120 000 iteraciones y sal aleatoria), nunca en texto plano.
+        Aun así, esto solo protege lo que queda en este navegador; en producción las guarda el servidor.
+      </li>
+      <li>
+        <strong>Protecciones.</strong> Siempre debe quedar al menos una persona administradora activa, y nadie puede
+        desactivarse, eliminarse ni cambiarse el rol a sí mismo.
+      </li>
+      <li>
+        <strong>Todavía no hay:</strong> cambio de contraseña por la propia persona, recuperación por correo, bloqueo por
+        intentos fallidos, ni bitácora de quién cambió qué. Se agregan con el servidor.
+      </li>
+      <li>
+        <strong>Perfiles fijos.</strong> Son los tres del documento (Administrador, Analista de Tránsito y Consultor Público);
+        no se pueden crear perfiles nuevos ni ajustar sus permisos desde aquí.
+      </li>
+    </ul>
+    @if (modoDemo) {
+      <button type="button" class="btn" (click)="pedirRestablecer()">Restablecer cuentas de demostración</button>
+    }
+  </section>
+</section>
+
+<!-- Crear / editar -->
+<app-dialogo-usuario
+  [abierto]="dialogoAbierto()"
+  [cuenta]="cuentaEnEdicion()"
+  [idActual]="idActual()"
+  (guardado)="alGuardar($event)"
+  (cerrar)="dialogoAbierto.set(false)"
+/>
+
+<!-- Confirmación (eliminar, restablecer) -->
+<app-modal [abierto]="confirmacion() !== null" [titulo]="confirmacion()?.titulo ?? ''" (cerrar)="confirmacion.set(null)">
+  <p class="mensaje">{{ confirmacion()?.mensaje }}</p>
+  <div acciones>
+    <button type="button" class="m-secundario" (click)="confirmacion.set(null)">Cancelar</button>
+    <button type="button" class="m-peligro" (click)="ejecutarConfirmacion()">{{ confirmacion()?.boton }}</button>
+  </div>
+</app-modal>
