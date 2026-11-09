@@ -1,9 +1,8 @@
 -- V3: ingesta de COSEVI "personas", perfil de mapeo y filas omitidas
 --
--- NOMBRE/NÚMERO DE VERSIÓN: si otro integrante también crea una V3, Flyway falla al arrancar.
 -- Coordinar el siguiente número libre antes de integrar a la rama principal.
 --
--- Decisión de diseño (A): el archivo de personas de COSEVI no trae ningún identificador del siniestro,
+-- El archivo de personas de COSEVI no trae ningún identificador del siniestro,
 -- así que no se puede enlazar con la tabla sinister. Las personas se guardan en victim SIN sinister_id,
 -- con su propio año / provincia / cantón / distrito / día / mes, y con la carga (ingestion_log) de la que vienen.
 -- Los KPI por víctima deben leer victim directamente y filtrar calidad = 'VALIDO'.
