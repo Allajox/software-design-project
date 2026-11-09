@@ -1,0 +1,21 @@
+# Perfil: MOPT (vía SNIT, servicios OGC WFS/WMS) - geometría de la red vial.
+#
+# DESHABILITADO. Este servicio entrega la red vial (líneas en GeoJSON), no siniestros, y el esquema actual
+# no tiene tabla para guardarla. Cuando el equipo defina quién consume estos datos hay que:
+#   1. crear la tabla destino (migración nueva) y un RecordKind nuevo,
+#   2. confirmar el nombre de la capa y sus atributos con GetCapabilities
+#      (el script DescargadorSIVCR.java lo hace; los nombres de capa están POR VERIFICAR),
+#   3. completar este perfil (json.recordsPath: features; los atributos quedan aplanados como "properties.<nombre>")
+#      y poner habilitado: true.
+# El GeoJSON se lee con JsonParser, por lo que no hace falta un FileFormat nuevo.
+id: mopt-red-vial
+fuente: MOPT
+tipo: SINISTER
+descripcion: MOPT/SNIT - red vial (GeoJSON)
+verificacion: POR_VERIFICAR
+habilitado: false
+motivoDeshabilitado: el MOPT aporta la geometría de la red vial, no siniestros, y todavía no existe una tabla donde guardarla. Está pendiente definir su mapeo.
+formatos: [JSON]
+
+json:
+  recordsPath: features

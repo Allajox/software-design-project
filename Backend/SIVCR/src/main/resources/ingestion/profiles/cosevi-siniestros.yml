@@ -1,0 +1,130 @@
+# Perfil: COSEVI - base de accidentes con víctimas (un registro por siniestro).
+#
+# Verificado contra el archivo real "2 Base de accidentes con victimas 2020_ 2025" (idéntico a COSEVI.csv):
+# 93 699 filas, 21 columnas, separador ';', codificación ISO-8859-1 (el nombre dice UTF8 pero no lo es).
+# Obtenido manualmente de https://datosabiertos.csv.go.cr/ (el portal exige API key para su API).
+#
+# El archivo NO trae latitud/longitud ni fecha exacta: solo año, mes, día de la semana y hora.
+# Por eso aquí no hay columnas lat/lon (la validación de coordenadas se aplica a las fuentes que las traigan).
+#
+# Columnas del archivo sin campo destino en la base (se ignoran): Calzada vertical, Calzada horizontal,
+# Tipo de calzada, Tipo de circulación, Región Mideplan.
+id: cosevi-siniestros
+fuente: COSEVI
+tipo: SINISTER
+descripcion: COSEVI - accidentes con víctimas (un registro por siniestro)
+verificacion: VERIFICADO
+habilitado: true
+formatos: [CSV, JSON, EXCEL]
+
+csv:
+  charset: AUTO            # UTF-8 si el archivo lo es; si no, fallbackCharset
+  fallbackCharset: ISO-8859-1
+  delimiter: ";"
+
+# Columnas que identifican este archivo (y lo distinguen del de personas)
+encabezadosRequeridos: ["Clase de accidente", "Tipo de accidente", "Estado del tiempo", "Hora"]
+
+# "Sin dato" en cualquier columna. En campos obligatorios deja el registro INCOMPLETO; en opcionales queda vacío.
+valoresDesconocidos: [Desconocido, Desconocida, Ignorado, Ignorada]
+
+columnas:
+  - columna: "Clase de accidente"
+    campo: severidad
+    tipo: CHOICE
+    obligatorio: true
+    # COSEVI solo distingue estas dos clases por siniestro (no separa fallecidos de heridos graves)
+    valores:
+      "Solo heridos leves": SOLO_HERIDOS_LEVES
+      "Con muertos o graves": CON_MUERTOS_O_GRAVES
+
+  - columna: "Tipo de accidente"
+    campo: tipo_accidente
+    tipo: STRING
+
+  - columna: "Año"
+    campo: anio
+    tipo: INTEGER
+    obligatorio: true
+    min: 2000
+    max: 2100
+
+  - columna: "Hora"
+    campo: hora
+    tipo: HOUR_RANGE
+    obligatorio: true
+
+  - columna: "Hora recodificada"
+    campo: franja
+    tipo: TIME_BAND_RANGE
+
+  - columna: "Provincia"
+    campo: provincia
+    tipo: CHOICE
+    obligatorio: true
+    valores:
+      "San José": SAN_JOSE
+      "Alajuela": ALAJUELA
+      "Cartago": CARTAGO
+      "Heredia": HEREDIA
+      "Guanacaste": GUANACASTE
+      "Puntarenas": PUNTARENAS
+      "Limón": LIMON
+
+  - columna: "Cantón"
+    campo: canton
+    tipo: STRING
+    obligatorio: true
+
+  - columna: "Distrito"
+    campo: distrito
+    tipo: STRING
+    obligatorio: true
+
+  - columna: "Ruta"            # número de ruta nacional, "Cantonal" o "Ignorada"
+    campo: ruta
+    tipo: STRING
+
+  - columna: "Kilómetro"       # "Cantonal" (rutas sin kilometraje) o "Ignorado" quedan vacíos
+    campo: km
+    tipo: DECIMAL
+    min: 0
+    valoresVacios: [Cantonal]
+
+  - columna: "Rural o urbano"
+    campo: zona
+    tipo: STRING
+
+  - columna: "Estado del tiempo"
+    campo: clima
+    tipo: CHOICE
+    valores:
+      "Buen tiempo": BUEN_TIEMPO
+      "Lluvia": LLUVIA
+      "Neblina": NEBLINA
+      "Lluvia con neblina": LLUVIA_CON_NEBLINA
+
+  - columna: "Estado de la calzada"
+    campo: calzada
+    tipo: CHOICE
+    valores:
+      "Buena": BUENA
+      "Huecos": HUECOS
+      "Resbaladiza": RESBALADIZA
+      "Construcción o reparación": CONSTRUCCION_O_REPARACION
+      "Hundimientos": HUNDIMIENTOS
+      "Otros": OTROS
+
+  - columna: "Tipo ruta"
+    campo: tipo_ruta
+    tipo: STRING
+
+  - columna: "Día"             # "7.Sábado"
+    campo: dia_semana
+    tipo: WEEKDAY_LABEL
+    obligatorio: true
+
+  - columna: "Mes"             # "D. Abril"
+    campo: mes
+    tipo: MONTH_LABEL
+    obligatorio: true

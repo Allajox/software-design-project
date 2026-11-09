@@ -1,0 +1,64 @@
+# Perfil: INEC - defunciones por accidentes de transporte (CIE-10 V01-V89).
+#
+# POR VERIFICAR. Los nombres de variable salen del diccionario DDI (INEC.xml, "Defunciones 2022-2024"):
+#   anodef (año), mesdef (mes 1-12), provocu (provincia de ocurrencia, 1-7), causamuer (código CIE-10).
+# Los códigos de provocu (1 San José ... 7 Limón) se confirmaron en las categorías del diccionario.
+# Los microdatos (DEFU2022/2023/2024) no están en el repositorio: cuando se descarguen hay que confirmar
+# que los encabezados del CSV/Excel exportado se llamen igual. Si no coinciden, la carga termina FALLIDA
+# con la lista de columnas que faltan, y basta ajustar este archivo.
+#
+# Solo hay fallecidos, sin hora ni ubicación fina: cada fila se guarda como un siniestro con severidad FALLECIDO.
+# Las filas cuya causa no es V01-V89 se omiten (no cuentan como corruptas).
+# OJO KPI: COSEVI también reporta fallecidos; los KPI no deben sumar ambas fuentes sin distinguirlas
+# (cada carga guarda su fuente en ingestion_log).
+id: inec-defunciones
+fuente: INEC
+tipo: SINISTER
+descripcion: INEC - defunciones por accidentes de transporte (CIE-10 V01-V89)
+verificacion: POR_VERIFICAR
+habilitado: true
+formatos: [CSV, EXCEL]
+
+csv:
+  charset: AUTO
+  fallbackCharset: ISO-8859-1
+  delimiter: ","     # por verificar: depende de cómo se exporten los microdatos
+
+encabezadosRequeridos: ["anodef", "mesdef", "provocu", "causamuer"]
+
+constantes:
+  severidad: FALLECIDO
+
+filtros:
+  - columna: causamuer
+    patron: "^V(0[1-9]|[1-8][0-9])"
+
+columnas:
+  - columna: anodef
+    campo: anio
+    tipo: INTEGER
+    obligatorio: true
+    min: 2000
+    max: 2100
+
+  - columna: mesdef
+    campo: mes
+    tipo: INTEGER
+    obligatorio: true
+
+  - columna: provocu
+    campo: provincia
+    tipo: CHOICE
+    obligatorio: true
+    valores:
+      1: SAN_JOSE
+      2: ALAJUELA
+      3: CARTAGO
+      4: HEREDIA
+      5: GUANACASTE
+      6: PUNTARENAS
+      7: LIMON
+
+  - columna: causamuer
+    campo: tipo_accidente
+    tipo: STRING
