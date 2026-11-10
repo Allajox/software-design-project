@@ -67,7 +67,7 @@ export class RiesgoComponent {
   protected readonly fmtPct = fmtPct;
 
   /** Punto de partida neutro: condiciones normales y la franja en la que se abre la pantalla */
-  protected readonly escenario = signal<Escenario>({ clima: 'Despejado', calzada: 'Seca', franja: franjaDeFecha(new Date()) });
+  protected readonly escenario = signal<Escenario>({ clima: 'Buen tiempo', calzada: 'Buena', franja: franjaDeFecha(new Date()) });
 
   protected readonly modelo = this.riesgo.modelo;
   protected readonly pocosDatos = computed(() => (this.modelo()?.entrenadoCon ?? 0) < MIN_SINIESTROS_MODELO);
@@ -128,6 +128,7 @@ export class RiesgoComponent {
   // ----- Exposición (supuesto editable) -----
   protected readonly sumaClima = computed(() => this.suma(Object.values(this.riesgo.exposicion().clima)));
   protected readonly sumaCalzada = computed(() => this.suma(Object.values(this.riesgo.exposicion().calzada)));
+  protected readonly sumaFranja = computed(() => this.suma(Object.values(this.riesgo.exposicion().franja)));
   private suma(v: readonly number[]): number {
     return Math.round(v.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0) * 100) / 100;
   }

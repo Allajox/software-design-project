@@ -1,0 +1,64 @@
+﻿Indicadores clave
+Indicador;Valor
+Siniestros (con filtros);93707
+Siniestros (total registrado);93707
+TSV (%);100,00
+ISS;1,57
+TPR (min);sin datos
+Personas afectadas;198726
+IC (%);14,65
+
+Siniestros por provincia
+Provincia;Siniestros;TSV (%)
+San José;32209;34,37
+Alajuela;18504;19,75
+Puntarenas;10486;11,19
+Heredia;9262;9,88
+Cartago;8787;9,38
+Guanacaste;7452;7,95
+Limón;7007;7,48
+
+Siniestros por tipo de vehículo / accidente
+Tipo;Siniestros;% del total;TFv (%)
+Colisión con motocicleta;39461;42,11;0,00
+Colisión entre vehículos;14821;15,82;0,00
+Atropello a persona;9706;10,36;0,00
+Caída de algún ocupante;8332;8,89;0,00
+Colisión con bicicleta;7525;8,03;0,00
+Salió de la vía;6603;7,05;0,00
+Colisión con objeto fijo;2841;3,03;0,00
+Vuelco;1665;1,78;0,00
+
+Siniestros por gravedad
+Gravedad;Siniestros;%
+Fallecido;3;0,00
+Con muertos o graves;13398;14,30
+Solo heridos leves;80306;85,70
+
+Rutas con más siniestros (Pareto)
+Ruta;Siniestros;%;% acumulado
+Ruta 2;5144;5,49;5,49
+Ruta 1;4509;4,81;10,30
+Ruta 32;2764;2,95;13,25
+Ruta 3;2563;2,74;15,99
+Ruta 34;1928;2,06;18,04
+Ruta 27;1660;1,77;19,81
+Ruta 209;1623;1,73;21,55
+Ruta 39;1542;1,65;23,19
+
+Día de la semana y franja horaria
+Día;Madrugada;Mañana;Tarde;Noche
+Lunes;1072;4439;4603;3703
+Martes;659;4168;4495;3596
+Miércoles;735;3920;4392;3743
+Jueves;794;3992;4237;3811
+Viernes;980;3868;4852;4615
+Sábado;1547;3169;4657;4624
+Domingo;2150;2551;4106;4226
+
+Personas por rango de edad y género
+Rango de edad;Masculino;Femenino
+>60;13283;3725
+41-60;41676;12158
+26-40;54498;18049
+18-25;26930;8044

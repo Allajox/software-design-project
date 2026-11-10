@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
-    <!--
-        Spring Boot 3.5.x: la línea con APIs estables (Jackson 2, @EntityScan clásico, Testcontainers 1.x).
-        Su soporte comunitario terminó el 2026-06-30; Spring Boot 4.1.x es la siguiente versión estable y migrar
-        implica Jackson 3 y módulos de arranque nuevos, así que se deja como tarea aparte.
-        CONFIRMAR la última 3.5.x disponible al compilar (la versión de abajo es la que se usó al escribir esto).
-    -->
+    <!-- Spring Boot version used by DataIngestion -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -23,34 +21,43 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <!-- Redundantes para Maven (release manda), pero NetBeans los lee para fijar el nivel del editor -->
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <java.version>25</java.version>
+
         <start-class>app.SivcrApplication</start-class>
         <exec.mainClass>app.SivcrApplication</exec.mainClass>
-        <!-- Fuera del BOM de Spring Boot -->
+
         <commons-csv.version>1.14.0</commons-csv.version>
         <poi.version>5.4.1</poi.version>
     </properties>
 
     <dependencies>
-        <!-- API REST (IngestionController) y Jackson para JSON -->
+        <!-- REST API -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- Implementación JPA/Hibernate de Repository<T> (inserción por lotes con secuencias) -->
+
+        <!-- JDBC support from main -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- JPA and Hibernate -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        <!-- Verificación del rol ADMIN en el servidor (@PreAuthorize) -->
+
+        <!-- Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-        <!-- Migraciones versionadas del esquema -->
+
+        <!-- Database migrations -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -59,25 +66,47 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
+
+        <!-- PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- CsvParser: lectura de CSV por flujo -->
+
+        <!-- CSV processing -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
             <version>${commons-csv.version}</version>
         </dependency>
-        <!-- ExcelParser: lectura de .xlsx por eventos (SAX), sin cargar el libro completo -->
+
+        <!-- Excel processing -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>${poi.version}</version>
         </dependency>
 
-        <!-- Pruebas: JUnit 5, Mockito y MockMvc vienen en este starter -->
+        <!-- Flyway for database migrations -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- PDF generation from main -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
+        <!-- Unit and integration tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -88,7 +117,6 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Prueba de integración contra PostgreSQL real en contenedor (requiere Docker) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>
@@ -108,34 +136,16 @@
 
     <build>
         <plugins>
+            <!-- Application entry point -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- model.SIVCR (Hello World) también tiene main: se fija la clase de arranque real -->
                     <mainClass>${start-class}</mainClass>
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <!--
-                        TEMPORAL (código de otro bloque): estos tres archivos (ya movidos a model/dto/) usan tipos que todavía
-                        no existen (KPIValue, ZoneShare, HeatmapData, ParetoPoint, VictimsByGenderAge,
-                        FatalityByVehicle), por lo que el proyecto no compila con ellos.
-                        QUITAR estas exclusiones cuando el dueño del bloque de KPI cree esos tipos.
-                    -->
-                    <excludes>
-                        <exclude>model/dto/KPIResult.java</exclude>
-                        <exclude>model/dto/DashboardCharts.java</exclude>
-                        <exclude>model/dto/PublicSummary.java</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-
-            <!-- Pruebas de integración (*IT.java) con Testcontainers: mvn verify. Las unitarias (*Test) corren con mvn test -->
+            <!-- Integration tests (*IT.java), executed with mvn verify -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -150,4 +160,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

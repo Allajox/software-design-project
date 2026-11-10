@@ -86,25 +86,31 @@ export type FranjaHoraria = (typeof FRANJAS)[number];
 
 // ---------- Vehiculares ----------
 export const VEHICULOS = [
-  'Particular', 'Transporte público', 'Carga pesada', 'Motocicleta', 'Bicicleta',
+  'Motocicleta', 'Automóvil', 'Pick up', 'Bicicleta', 'Rural', 'Autobús', 'Taxi', 'Microbús',
+  'Camión', 'Cabezal con remolque', 'Cabezal sin remolque', 'Vagoneta', 'Cisterna', 'Grúa',
+  'Ambulancia', 'Vehículo con remolque', 'Otros',
 ] as const;
 export type TipoVehiculo = (typeof VEHICULOS)[number];
 
 // ---------- Gravedad ----------
-export const SEVERIDADES = ['Fallecido', 'Grave', 'Leve'] as const;
+export const SEVERIDADES = [
+  'Fallecido',
+  'Con muertos o graves',
+  'Solo heridos leves',
+] as const;
 export type Severidad = (typeof SEVERIDADES)[number];
 
 // ---------- Entorno ----------
-export const CLIMAS = ['Despejado', 'Nublado', 'Lluvia', 'Lluvia fuerte', 'Neblina'] as const;
+export const CLIMAS = ['Buen tiempo', 'Lluvia', 'Neblina', 'Lluvia con neblina'] as const;
 export type Clima = (typeof CLIMAS)[number];
 
-export const CALZADAS = ['Seca', 'Húmeda', 'Derrumbe'] as const;
+export const CALZADAS = ['Buena', 'Huecos', 'Resbaladiza', 'Construcción o reparación', 'Hundimientos', 'Otros'] as const;
 export type EstadoCalzada = (typeof CALZADAS)[number];
 
 /** Climas que cuentan como "condición adversa" (CA) en el índice IC (3.4.5) */
-export const CLIMAS_ADVERSOS: readonly Clima[] = ['Lluvia', 'Lluvia fuerte', 'Neblina'];
+export const CLIMAS_ADVERSOS: readonly Clima[] = ['Lluvia', 'Neblina', 'Lluvia con neblina'];
 /** Estados de calzada que también cuentan como condición adversa */
-export const CALZADAS_ADVERSAS: readonly EstadoCalzada[] = ['Derrumbe'];
+export const CALZADAS_ADVERSAS: readonly EstadoCalzada[] = ['Huecos', 'Resbaladiza', 'Hundimientos'];
 
 // ---------- Demográficos ----------
 export const EDADES = ['18-25', '26-40', '41-60', '>60'] as const;

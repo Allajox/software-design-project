@@ -4,6 +4,11 @@ import { ROLES_ANALISIS, SOLO_ADMIN, TODOS_LOS_ROLES } from './core/config/roles
 
 export const routes: Routes = [
   {
+    path: 'publico',
+    loadComponent: () =>
+      import('./features/publico/publico.component').then((m) => m.PublicoComponent),
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () =>
