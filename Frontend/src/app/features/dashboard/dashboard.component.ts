@@ -1,6 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DatosVialesService } from '../../core/services/datos-viales.service';
-import { DIAS, EDADES, FRANJAS, GENEROS, PROVINCIAS, RUTAS, SEVERIDADES, VEHICULOS } from '../../core/models/catalogos';
 import { EstadisticasService } from '../../core/services/estadisticas.service';
 import { FiltrosService } from '../../core/services/filtros.service';
 import { PESOS_SEVERIDAD } from '../../core/services/kpi.calculator';
@@ -13,6 +12,12 @@ import { TablaDatosComponent } from './graficos/tabla-datos.component';
 import { TarjetaGraficoComponent } from './graficos/tarjeta-grafico.component';
 import { PanelFiltrosComponent } from './panel-filtros/panel-filtros.component';
 import { TarjetaKpiComponent } from './tarjeta-kpi.component';
+import { HttpClient } from '@angular/common/http';
+import { API_CONFIG } from '../../core/config/api.config';
+import { DIAS, EDADES, FRANJAS, GENEROS, PROVINCIAS, SEVERIDADES, TipoVehiculo } from '../../core/models/catalogos';
+import { AvisosService } from '../../core/services/avisos.service';
+import { nombreArchivo } from '../../core/services/exportacion';
+import { descargar } from '../../shared/utils/descarga';
 
 /** Comprueba que un texto pertenece a un catálogo y deja a TypeScript saber de qué tipo es */
 function enCatalogo<T extends string>(catalogo: readonly T[], valor: string): valor is T {
@@ -38,10 +43,12 @@ export class DashboardComponent {
   protected readonly est = inject(EstadisticasService);
   protected readonly datos = inject(DatosVialesService);
   private readonly filtrosSrv = inject(FiltrosService);
+  private readonly http = inject(HttpClient);
+  private readonly avisos = inject(AvisosService);
   protected readonly f = this.filtrosSrv.filtros;
 
   protected readonly kpis = this.est.kpis;
-  protected readonly vacio = computed(() => this.kpis().siniestros === 0);
+  protected readonly vacio = computed(() => this.est.listo() && this.kpis().siniestros === 0);
 
   // ---------- Tarjetas KPI ----------
   protected readonly tarjetas = computed(() => {
@@ -50,6 +57,7 @@ export class DashboardComponent {
     const f = this.f();
     const hayZona = !!(f.provincia || f.canton || f.distrito || f.ruta);
     const sinDatos = '—';
+    const sinTpr = k.tpr <= 0;
     return [
       {
         sigla: 'SINIESTROS', nombre: 'Siniestros registrados',
@@ -66,20 +74,20 @@ export class DashboardComponent {
       {
         sigla: 'ISS', nombre: 'Índice de severidad',
         valor: vacio ? sinDatos : fmtDec2(k.iss), unidad: '',
-        detalle: `Pesos: fallecido ${PESOS_SEVERIDAD.w1Fallecidos} · grave ${PESOS_SEVERIDAD.w2Graves} · leve ${PESOS_SEVERIDAD.w3Leves}`,
-        formula: 'ISS = (W1·fallecidos + W2·heridos graves + W3·heridos leves) ÷ total de siniestros. Los pesos W son supuestos configurables.',
+        detalle: `Pesos: fallecido ${PESOS_SEVERIDAD.w1Fallecidos} · muertos o graves ${PESOS_SEVERIDAD.w2Graves} · solo leves ${PESOS_SEVERIDAD.w3Leves}`,
+        formula: 'ISS = (W1·siniestros de categoría fallecido + W2·siniestros con muertos o graves + W3·siniestros con solo heridos leves) ÷ total de siniestros. Los pesos W son supuestos configurables.',
       },
       {
         sigla: 'TPR', nombre: 'Tiempo promedio de respuesta',
-        valor: vacio ? sinDatos : fmtDec1(k.tpr), unidad: vacio ? '' : 'min',
-        detalle: 'hasta la llegada de los cuerpos de atención',
+        valor: vacio || sinTpr ? sinDatos : fmtDec1(k.tpr), unidad: vacio || sinTpr ? '' : 'min',
+        detalle: sinTpr ? 'La fuente (COSEVI) no trae este dato' : 'hasta la llegada de los cuerpos de atención',
         formula: 'TPR = suma de los tiempos de respuesta ÷ cantidad de siniestros.',
       },
       {
         sigla: 'VÍCTIMAS', nombre: 'Personas afectadas',
         valor: fmtEntero(k.victimas), unidad: '',
         detalle: `${fmtEntero(k.fallecidos)} fallecidas · ${fmtEntero(k.heridosGraves)} graves · ${fmtEntero(k.heridosLeves)} leves`,
-        formula: 'Fallecidos + heridos graves + heridos leves de los siniestros filtrados.',
+        formula: 'Fallecidos + heridos graves + heridos leves de las personas registradas (no incluye ilesos).',
       },
       {
         sigla: 'IC', nombre: 'Impacto por clima y calzada',
@@ -112,7 +120,7 @@ export class DashboardComponent {
       valor: v.valor,
       texto: fmtEntero(v.valor),
       extras: [fmtPct(v.tasaFatalidad)],
-      tip: `${v.etiqueta}\n${fmtEntero(v.valor)} siniestros (${fmtPct(v.porcentaje)})\nTasa de fatalidad: ${fmtPct(v.tasaFatalidad)}`,
+      tip: `${v.etiqueta}\n${fmtEntero(v.valor)} Personas (${fmtPct(v.porcentaje)})\nTasa de fatalidad: ${fmtPct(v.tasaFatalidad)}`,
     })),
   );
 
@@ -157,12 +165,11 @@ export class DashboardComponent {
   }
 
   protected alternarRuta(valor: string): void {
-    if (!enCatalogo(RUTAS, valor)) return;
     this.filtrosSrv.establecer('ruta', this.f().ruta === valor ? '' : valor);
   }
 
   protected alternarVehiculo(valor: string): void {
-    if (enCatalogo(VEHICULOS, valor)) this.filtrosSrv.alternar('vehiculos', valor);
+    this.filtrosSrv.alternar('vehiculos', valor as TipoVehiculo);
   }
 
   protected alternarSeveridad(valor: string): void {
@@ -188,4 +195,26 @@ export class DashboardComponent {
   protected limpiar(): void {
     this.filtrosSrv.limpiar();
   }
+
+  protected readonly exportando = signal(false);
+
+protected exportar(formato: 'csv' | 'xlsx' | 'pdf'): void {
+  this.exportando.set(true);
+  this.http
+    .get(`${API_CONFIG.baseUrl}/dashboard/export`, {
+      params: { ...this.est.parametros(), formato },
+      responseType: 'blob',
+    })
+    .subscribe({
+      next: (archivo) => {
+        descargar(archivo, nombreArchivo('sivcr-dashboard', formato));
+        this.exportando.set(false);
+      },
+      error: () => {
+        this.avisos.error('No se pudo generar el reporte. Intente de nuevo.');
+        this.exportando.set(false);
+      },
+    });
+}
+  
 }

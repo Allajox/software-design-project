@@ -49,8 +49,8 @@ export interface Exposicion {
  * Las franjas duran 6 horas cada una, por eso 25 % cada una. Reemplazar con datos del IMN cuando se conecte.
  */
 export const EXPOSICION_POR_DEFECTO: Exposicion = {
-  clima: { 'Despejado': 38, 'Nublado': 32, 'Lluvia': 17, 'Lluvia fuerte': 5, 'Neblina': 8 },
-  calzada: { 'Seca': 68, 'Húmeda': 30, 'Derrumbe': 2 },
+  clima: { 'Buen tiempo': 87, 'Lluvia': 11, 'Neblina': 1, 'Lluvia con neblina': 1 },
+  calzada: { 'Buena': 92, 'Huecos': 3, 'Resbaladiza': 2, 'Construcción o reparación': 1, 'Hundimientos': 1, 'Otros': 1 },
   franja: { 'Madrugada': 25, 'Mañana': 25, 'Tarde': 25, 'Noche': 25 },
 };
 
@@ -258,7 +258,7 @@ function contarCeldas(registros: readonly Siniestro[]): Map<string, Celda> {
     const c = celdas.get(claveCelda({ clima: s.clima, calzada: s.calzada, franja: s.franja }));
     if (!c) continue;
     c.n++;
-    if (s.severidad !== 'Leve') c.graves++;
+    if ( s.severidad !== 'Solo heridos leves') c.graves++;
     if (s.severidad === 'Fallecido') c.mortales++;
   }
   return celdas;
@@ -332,7 +332,7 @@ export function entrenarModelo(registros: readonly Siniestro[], exposicionEntrad
 
   const total = registros.length;
   const base = {
-    pGrave: registros.filter((s) => s.severidad !== 'Leve').length / total,
+    pGrave: registros.filter((s) => s.severidad !== 'Solo heridos leves').length / total,
     pMortal: registros.filter((s) => s.severidad === 'Fallecido').length / total,
   };
 
@@ -351,7 +351,7 @@ export function entrenarModelo(registros: readonly Siniestro[], exposicionEntrad
     const probaDe = (ajuste: AjusteGLM, s: Siniestro) =>
       sigmoide(lineal(ajuste.beta, vectorEscenario({ clima: s.clima, calzada: s.calzada, franja: s.franja })));
     calidad = {
-      auc: auc(prueba.map((s) => probaDe(parcial.grave, s)), prueba.map((s) => s.severidad !== 'Leve')),
+      auc: auc(prueba.map((s) => probaDe(parcial.grave, s)), prueba.map((s) => s.severidad !== 'Solo heridos leves')),
       aucMortal: auc(prueba.map((s) => probaDe(parcial.mortal, s)), prueba.map((s) => s.severidad === 'Fallecido')),
       evaluadoCon: prueba.length,
     };

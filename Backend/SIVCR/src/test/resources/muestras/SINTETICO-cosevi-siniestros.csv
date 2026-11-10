@@ -1,0 +1,7 @@
+Clase de accidente;Tipo de accidente;Año;Hora;Hora recodificada;Provincia ;Cantón;Distrito;Ruta;Kilómetro;Rural o urbano;Calzada vertical;Calzada horizontal;Tipo de calzada;Tipo de circulación;Estado del tiempo;Estado de la calzada;Región Mideplan;Tipo ruta;Día ;Mes 
+Solo heridos leves;Colisión con motocicleta;2024;07:00-07:59;06:00-11:59;San José;Escazú;San Rafael;27;12;Urbana;Plano;Recta;Asfalto;Por detrás;Buen tiempo;Buena;Central;Nacional;2.Lunes;B. Febrero
+Con muertos o graves;Vuelco;2023;22:00-22:59;18:00-23:59;Limón;Pococí;Guápiles;32;43;Rural;Pendiente;Curva;Asfalto;Lateral igual sentido;Lluvia;Resbaladiza;Huetar caribe;Nacional;7.Sábado;D. Abril
+Solo heridos leves;Atropello a persona;2022;15:00-15:59;12:00-17:59;Alajuela;Alajuela;Alajuela;Cantonal;Cantonal;Urbana;Plano;Recta;Asfalto;Desconocido;Desconocido;Desconocido;Central;Cantonal;4.Miércoles;J. Octubre
+Solo heridos leves;Salió de la vía;2024;09:00-09:59;06:00-11:59;Cartago;Paraíso;Desconocido;2;51;Rural;Plano;Curva;Asfalto;De frente;Buen tiempo;Buena;Central;Nacional;6.Viernes;A. Enero
+Solo heridos leves;Vuelco;2O24;10:00-10:59;06:00-11:59;Heredia;Heredia;Heredia;3;5;Urbana;Plano;Recta;Asfalto;De frente;Buen tiempo;Buena;Central;Nacional;3.Martes;C. Marzo
+Con muertos o graves;Colisión entre vehículos;2023;13:00-13:59;12:00-17:59;Narnia;Villa Falsa;Distrito Inventado;1;99;Urbana;Plano;Recta;Asfalto;Por detrás;Buen tiempo;Buena;Central;Nacional;5.Jueves;E. Mayo

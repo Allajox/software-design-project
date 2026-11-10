@@ -64,59 +64,158 @@ const FACTOR_RESPUESTA: Record<Provincia, number> = {
 
 const FRANJAS_PESO: Ponderado<FranjaHoraria> = [['Madrugada', 12], ['Mañana', 26], ['Tarde', 33], ['Noche', 29]];
 const VEHICULOS_PESO: Ponderado<TipoVehiculo> = [
-  ['Particular', 54], ['Motocicleta', 28], ['Carga pesada', 8], ['Transporte público', 7], ['Bicicleta', 3],
+  ['Automóvil', 35],
+  ['Motocicleta', 25],
+  ['Pick up', 10],
+  ['Bicicleta', 3],
+  ['Rural', 5],
+  ['Autobús', 5],
+  ['Taxi', 4],
+  ['Microbús', 3],
+  ['Camión', 5],
+  ['Cabezal con remolque', 2],
+  ['Cabezal sin remolque', 1],
+  ['Vagoneta', 1],
+  ['Cisterna', 1],
+  ['Grúa', 1],
+  ['Ambulancia', 1],
+  ['Vehículo con remolque', 1],
+  ['Otros', 2],
 ];
 const MULT_VEHICULO: Record<TipoVehiculo, number> = {
-  'Motocicleta': 2.4, 'Bicicleta': 2.2, 'Carga pesada': 1.7, 'Transporte público': 1.0, 'Particular': 0.7,
+  'Motocicleta': 2.4,
+  'Automóvil': 0.7,
+  'Pick up': 0.9,
+  'Bicicleta': 2.2,
+  'Rural': 0.8,
+  'Autobús': 1.0,
+  'Taxi': 0.8,
+  'Microbús': 1.0,
+  'Camión': 1.7,
+  'Cabezal con remolque': 1.7,
+  'Cabezal sin remolque': 1.7,
+  'Vagoneta': 1.5,
+  'Cisterna': 1.7,
+  'Grúa': 1.5,
+  'Ambulancia': 1.0,
+  'Vehículo con remolque': 1.3,
+  'Otros': 1.0,
 };
 
 const CLIMA_LLUVIOSO: Ponderado<Clima> = [
-  ['Despejado', 20], ['Nublado', 25], ['Lluvia', 35], ['Lluvia fuerte', 12], ['Neblina', 8],
+  ['Buen tiempo', 15],
+  ['Lluvia', 50],
+  ['Neblina', 10],
+  ['Lluvia con neblina', 25],
 ];
 const CLIMA_SECO: Ponderado<Clima> = [
-  ['Despejado', 55], ['Nublado', 25], ['Lluvia', 10], ['Lluvia fuerte', 3], ['Neblina', 7],
+  ['Buen tiempo', 75],
+  ['Lluvia', 10],
+  ['Neblina', 10],
+  ['Lluvia con neblina', 5],
 ];
 const CALZADA_POR_CLIMA: Record<Clima, Ponderado<EstadoCalzada>> = {
-  'Despejado': [['Seca', 97], ['Húmeda', 3]],
-  'Nublado': [['Seca', 92], ['Húmeda', 7], ['Derrumbe', 1]],
-  'Lluvia': [['Húmeda', 80], ['Seca', 15], ['Derrumbe', 5]],
-  'Lluvia fuerte': [['Húmeda', 76], ['Derrumbe', 20], ['Seca', 4]],
-  'Neblina': [['Húmeda', 60], ['Seca', 40]],
+  'Buen tiempo': [
+    ['Buena', 70],
+    ['Huecos', 15],
+    ['Resbaladiza', 5],
+    ['Construcción o reparación', 5],
+    ['Hundimientos', 2],
+    ['Otros', 3],
+  ],
+
+  'Lluvia': [
+    ['Buena', 35],
+    ['Huecos', 15],
+    ['Resbaladiza', 35],
+    ['Construcción o reparación', 5],
+    ['Hundimientos', 5],
+    ['Otros', 5],
+  ],
+
+  'Neblina': [
+    ['Buena', 55],
+    ['Huecos', 15],
+    ['Resbaladiza', 15],
+    ['Construcción o reparación', 5],
+    ['Hundimientos', 5],
+    ['Otros', 5],
+  ],
+
+  'Lluvia con neblina': [
+    ['Buena', 25],
+    ['Huecos', 15],
+    ['Resbaladiza', 40],
+    ['Construcción o reparación', 5],
+    ['Hundimientos', 10],
+    ['Otros', 5],
+  ],
 };
 
 function pesosCondicion(v: TipoVehiculo): Ponderado<CondicionPersona> {
   switch (v) {
     case 'Motocicleta':
-    case 'Bicicleta': return [['Conductor', 80], ['Acompañante', 12], ['Peatón', 8]];
-    case 'Transporte público': return [['Conductor', 30], ['Acompañante', 40], ['Peatón', 30]];
-    case 'Carga pesada': return [['Conductor', 55], ['Acompañante', 10], ['Peatón', 35]];
-    default: return [['Conductor', 62], ['Acompañante', 20], ['Peatón', 18]];
+    case 'Bicicleta':
+      return [['Conductor', 80], ['Acompañante', 12], ['Peatón', 8]];
+
+    case 'Autobús':
+    case 'Microbús':
+      return [['Conductor', 30], ['Acompañante', 40], ['Peatón', 30]];
+
+    case 'Camión':
+    case 'Cabezal con remolque':
+    case 'Cabezal sin remolque':
+    case 'Cisterna':
+    case 'Vagoneta':
+      return [['Conductor', 55], ['Acompañante', 10], ['Peatón', 35]];
+
+    default:
+      return [['Conductor', 62], ['Acompañante', 20], ['Peatón', 18]];
   }
 }
 
 function pesosEdad(v: TipoVehiculo): Ponderado<RangoEdad> {
   switch (v) {
-    case 'Motocicleta': return [['18-25', 30], ['26-40', 45], ['41-60', 20], ['>60', 5]];
-    case 'Bicicleta': return [['18-25', 20], ['26-40', 30], ['41-60', 30], ['>60', 20]];
-    case 'Carga pesada': return [['18-25', 5], ['26-40', 35], ['41-60', 50], ['>60', 10]];
-    case 'Transporte público': return [['18-25', 10], ['26-40', 30], ['41-60', 40], ['>60', 20]];
-    default: return [['18-25', 18], ['26-40', 36], ['41-60', 30], ['>60', 16]];
+    case 'Motocicleta':
+      return [['18-25', 30], ['26-40', 45], ['41-60', 20], ['>60', 5]];
+
+    case 'Bicicleta':
+      return [['18-25', 20], ['26-40', 30], ['41-60', 30], ['>60', 20]];
+
+    case 'Camión':
+    case 'Cabezal con remolque':
+    case 'Cabezal sin remolque':
+    case 'Cisterna':
+    case 'Vagoneta':
+      return [['18-25', 5], ['26-40', 35], ['41-60', 50], ['>60', 10]];
+
+    case 'Autobús':
+    case 'Microbús':
+      return [['18-25', 10], ['26-40', 30], ['41-60', 40], ['>60', 20]];
+
+    default:
+      return [['18-25', 18], ['26-40', 36], ['41-60', 30], ['>60', 16]];
   }
 }
-
 const PCT_MASCULINO: Record<TipoVehiculo, number> = {
-  'Motocicleta': 86, 'Bicicleta': 82, 'Carga pesada': 95, 'Transporte público': 70, 'Particular': 66,
+  'Motocicleta': 86,
+  'Automóvil': 66,
+  'Pick up': 75,
+  'Bicicleta': 82,
+  'Rural': 70,
+  'Autobús': 70,
+  'Taxi': 70,
+  'Microbús': 70,
+  'Camión': 95,
+  'Cabezal con remolque': 95,
+  'Cabezal sin remolque': 95,
+  'Vagoneta': 90,
+  'Cisterna': 95,
+  'Grúa': 90,
+  'Ambulancia': 70,
+  'Vehículo con remolque': 75,
+  'Otros': 70,
 };
-
-function elegirFecha(rng: Rng): Date {
-  const inicio = Date.UTC(2023, 0, 1);
-  const dias = Math.round((Date.UTC(2025, 11, 31) - inicio) / 86_400_000) + 1;
-  for (;;) {
-    const fecha = new Date(inicio + Math.floor(rng() * dias) * 86_400_000);
-    const peso = PESO_DIA[fecha.getUTCDay()] * PESO_MES[fecha.getUTCMonth()];
-    if (rng() * PESO_MAX <= peso) return fecha;
-  }
-}
 
 /**
  * «Puntos negros» de los datos de ejemplo: tramos donde los siniestros se concentran (y, en algunos,
@@ -176,6 +275,19 @@ function elegirKilometro(u: number, ruta: Ruta): { km: number; franja?: FranjaHo
   return { km: 1 + Math.floor(u * 120) };
 }
 
+
+function elegirFecha(rng: Rng): Date {
+  const inicio = Date.UTC(2023, 0, 1);
+  const dias = Math.round((Date.UTC(2025, 11, 31) - inicio) / 86_400_000) + 1;
+
+  for (;;) {
+    const fecha = new Date(inicio + Math.floor(rng() * dias) * 86_400_000);
+    const peso = PESO_DIA[fecha.getUTCDay()] * PESO_MES[fecha.getUTCMonth()];
+
+    if (rng() * PESO_MAX <= peso) return fecha;
+  }
+}
+
 function crearSiniestro(rng: Rng): Omit<Siniestro, 'id'> {
   const fecha = elegirFecha(rng);
   const mes = fecha.getUTCMonth() + 1;
@@ -209,7 +321,7 @@ function crearSiniestro(rng: Rng): Omit<Siniestro, 'id'> {
   const pFallecido = Math.min(0.45, 0.035 * multiplicador);
   const pGrave = Math.min(0.5, 0.16 * Math.sqrt(multiplicador));
   const u = rng();
-  const severidad: Severidad = u < pFallecido ? 'Fallecido' : u < pFallecido + pGrave ? 'Grave' : 'Leve';
+  const severidad: Severidad = u < pFallecido ? 'Con muertos o graves' : u < pFallecido + pGrave ? 'Fallecido' : 'Solo heridos leves';
 
   let fallecidos = 0;
   let heridosGraves = 0;
@@ -218,7 +330,7 @@ function crearSiniestro(rng: Rng): Omit<Siniestro, 'id'> {
     fallecidos = elegir(rng, [[1, 85], [2, 13], [3, 2]] as const);
     heridosGraves = elegir(rng, [[0, 60], [1, 30], [2, 10]] as const);
     heridosLeves = elegir(rng, [[0, 60], [1, 30], [2, 10]] as const);
-  } else if (severidad === 'Grave') {
+  } else if (severidad === 'Con muertos o graves') {
     heridosGraves = elegir(rng, [[1, 80], [2, 15], [3, 5]] as const);
     heridosLeves = elegir(rng, [[0, 60], [1, 30], [2, 10]] as const);
   } else {
@@ -235,8 +347,8 @@ function crearSiniestro(rng: Rng): Omit<Siniestro, 'id'> {
         (12 + exponencial) *
           FACTOR_RESPUESTA[provincia] *
           (franja === 'Madrugada' ? 1.2 : 1) *
-          (clima === 'Lluvia fuerte' ? 1.25 : 1) *
-          (calzada === 'Derrumbe' ? 1.5 : 1),
+          (CLIMAS_ADVERSOS.includes(clima) ? 1.25 : 1) *
+          (CALZADAS_ADVERSAS.includes(calzada) ? 1.5 : 1),
       ),
     ),
   );

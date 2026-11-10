@@ -1,9 +1,12 @@
-// Data Transfer Object
 package model.dto;
 
 import java.util.List;
+import model.dto.DashboardCharts.ItemConteo;
 
-public record PublicSummary(long totalIncidents, KPIValue tsv, String topProvince,List<ProvinceCount> incidentsByProvince, List<YearCount> yearlyEvolution) {
-    public record ProvinceCount(String province, long incidents) { }
-    public record YearCount(int year, long incidents) { }
-}
+/** Resumen para la vista pública (GET /api/public/summary): solo agregados, nada por registro. */
+public record PublicSummary(
+        long totalSiniestros,
+        List<ItemConteo> porAnio,
+        List<ItemConteo> porProvincia,
+        List<ItemConteo> porSeveridad,
+        List<ItemConteo> porFranja) {}

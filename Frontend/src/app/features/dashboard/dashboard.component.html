@@ -1,12 +1,19 @@
 <section class="pagina">
   <h1>Dashboard de siniestralidad vial</h1>
   <p class="subtitulo">
-    Costa Rica 2023–2025 ·
-    @if (datos.esEjemplo()) {
-      <strong>datos de ejemplo</strong> ({{ est.totalRegistros() }} registros simulados, sin conexión al servidor)
+    Costa Rica ·
+    @if (est.error()) {
+      <strong>no se pudo conectar con el servidor</strong>
+    } @else if (!est.listo()) {
+      <strong>cargando datos…</strong>
     } @else {
-      <strong>datos cargados desde archivo</strong> ({{ est.totalRegistros() }} registros; último archivo: {{ datos.origen().archivo }})
+      <strong>datos de la base de datos</strong> ({{ est.totalRegistros() }} registros válidos)
     }
+    <span role="group" aria-label="Exportar reporte">
+      <button type="button" (click)="exportar('csv')" [disabled]="!est.listo() || exportando()">CSV</button>
+      <button type="button" (click)="exportar('xlsx')" [disabled]="!est.listo() || exportando()">Excel</button>
+      <button type="button" (click)="exportar('pdf')" [disabled]="!est.listo() || exportando()">PDF</button>
+    </span>
   </p>
 
   <app-panel-filtros [mostrando]="kpis().siniestros" [total]="est.totalRegistros()" />
@@ -91,7 +98,7 @@
 
       <app-tarjeta-grafico
         titulo="¿Quiénes se ven involucrados? Edad y género"
-        subtitulo="Persona principal de cada siniestro"
+        subtitulo="Personas involucradas, filtradas por ubicación y fecha"
       >
         <app-piramide
           ariaLabel="Personas involucradas por rango de edad y género"
@@ -110,7 +117,7 @@
 
       <app-tarjeta-grafico
         titulo="Tipo de vehículo"
-        subtitulo="Siniestros y tasa de fatalidad (TFv: % con al menos un fallecido)"
+        subtitulo="Personas involucradas y tasa de fatalidad (TFv: % de personas fallecidas)"
       >
         <app-barras-rankeadas
           ariaLabel="Siniestros por tipo de vehículo"
@@ -121,8 +128,8 @@
           (seleccionar)="alternarVehiculo($event)"
         />
         <app-tabla-datos
-          descripcion="Siniestros y tasa de fatalidad por tipo de vehículo"
-          [columnas]="['Vehículo', 'Siniestros', 'TFv']"
+          descripcion="Personas involucradas y tasa de fatalidad por tipo de vehículo"
+          [columnas]="['Vehículo', 'Personas', 'TFv']"
           [filas]="tablaVehiculo()"
         />
       </app-tarjeta-grafico>

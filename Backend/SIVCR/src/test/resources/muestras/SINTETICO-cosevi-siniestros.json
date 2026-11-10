@@ -1,0 +1,5 @@
+[
+  {"Clase de accidente": "Solo heridos leves", "Tipo de accidente": "Colisión con motocicleta", "Año": 2024, "Hora": "07:00-07:59", "Hora recodificada": "06:00-11:59", "Provincia": "San José", "Cantón": "Escazú", "Distrito": "San Rafael", "Ruta": "27", "Kilómetro": 12, "Rural o urbano": "Urbana", "Estado del tiempo": "Buen tiempo", "Estado de la calzada": "Buena", "Tipo ruta": "Nacional", "Día": "2.Lunes", "Mes": "B. Febrero"},
+  {"Clase de accidente": "Con muertos o graves", "Tipo de accidente": "Vuelco", "Año": 2023, "Hora": "22:00-22:59", "Hora recodificada": "18:00-23:59", "Provincia": "Limón", "Cantón": "Pococí", "Distrito": "Guápiles", "Ruta": "32", "Kilómetro": 43, "Rural o urbano": "Rural", "Estado del tiempo": "Lluvia", "Estado de la calzada": "Resbaladiza", "Tipo ruta": "Nacional", "Día": "7.Sábado", "Mes": "D. Abril"},
+  {"Clase de accidente": "Solo heridos leves", "Tipo de accidente": "Vuelco", "Año": "veinte", "Hora": "10:00-10:59", "Hora recodificada": "06:00-11:59", "Provincia": "Heredia", "Cantón": "Heredia", "Distrito": "Heredia", "Día": "3.Martes", "Mes": "C. Marzo"}
+]

@@ -7,11 +7,29 @@ import { calcularIC, calcularISS, calcularKpis, calcularTFv, calcularTPR, calcul
 /** Siniestro de prueba con valores por defecto, para cambiar solo lo que importa en cada caso */
 function siniestro(parcial: Partial<Siniestro> = {}): Siniestro {
   return {
-    id: 1, fecha: '2025-01-01', anio: 2025, mes: 1, diaSemana: 'Miércoles', franja: 'Mañana',
-    provincia: 'San José', canton: 'San José', distrito: 'Carmen', ruta: 'Ruta 1', kilometro: 10,
-    vehiculo: 'Particular', severidad: 'Leve', fallecidos: 0, heridosGraves: 0, heridosLeves: 1,
-    clima: 'Despejado', calzada: 'Seca', senalizacion: true,
-    edad: '26-40', genero: 'Masculino', condicion: 'Conductor', tiempoRespuestaMin: 10,
+    id: 1,
+    fecha: '2025-01-01',
+    anio: 2025,
+    mes: 1,
+    diaSemana: 'Miércoles',
+    franja: 'Mañana',
+    provincia: 'San José',
+    canton: 'San José',
+    distrito: 'Carmen',
+    ruta: 'Ruta 1',
+    kilometro: 10,
+    vehiculo: 'Automóvil',
+    severidad: 'Solo heridos leves',
+    fallecidos: 0,
+    heridosGraves: 0,
+    heridosLeves: 1,
+    clima: 'Buen tiempo',
+    calzada: 'Buena',
+    senalizacion: true,
+    edad: '26-40',
+    genero: 'Masculino',
+    condicion: 'Conductor',
+    tiempoRespuestaMin: 10,
     ...parcial,
   };
 }
@@ -43,20 +61,21 @@ describe('Fórmulas de KPIs (sección 3.4 del documento)', () => {
       siniestro({ vehiculo: 'Motocicleta', fallecidos: 0 }),
       siniestro({ vehiculo: 'Motocicleta', fallecidos: 0 }),
       siniestro({ vehiculo: 'Motocicleta', fallecidos: 2 }),
-      siniestro({ vehiculo: 'Particular', fallecidos: 1 }),
+      siniestro({ vehiculo: 'Automóvil', fallecidos: 1 }),
     ];
     expect(calcularTFv(datos, 'Motocicleta')).toBe(50); // 2 de 4
     expect(calcularTFv(datos, 'Bicicleta')).toBe(0); // no hay bicicletas
   });
 
-  it('IC: % bajo condiciones adversas (clima adverso o derrumbe)', () => {
+  it('IC: % bajo condiciones adversas (clima adverso o calzada adversa)', () => {
     const datos = [
       siniestro({ clima: 'Lluvia' }),
-      siniestro({ clima: 'Despejado', calzada: 'Derrumbe' }),
-      siniestro({ clima: 'Despejado' }),
-      siniestro({ clima: 'Nublado' }),
+      siniestro({ clima: 'Buen tiempo', calzada: 'Resbaladiza' }),
+      siniestro({ clima: 'Buen tiempo' }),
+      siniestro({ clima: 'Neblina' }),
     ];
-    expect(calcularIC(datos)).toBe(50);
+
+    expect(calcularIC(datos)).toBe(75);
   });
 
   it('calcularKpis suma víctimas y usa el total nacional como denominador del TSV', () => {
@@ -108,8 +127,8 @@ describe('Datos de ejemplo', () => {
   it('son coherentes: la gravedad coincide con las víctimas', () => {
     for (const s of generarSiniestros(1500, 3)) {
       if (s.severidad === 'Fallecido') expect(s.fallecidos).toBeGreaterThan(0);
-      if (s.severidad === 'Grave') expect(s.fallecidos === 0 && s.heridosGraves > 0).toBe(true);
-      if (s.severidad === 'Leve') expect(s.fallecidos + s.heridosGraves).toBe(0);
+      if (s.severidad === 'Con muertos o graves') expect(s.fallecidos === 0 && s.heridosGraves > 0).toBe(true);
+      if (s.severidad === 'Solo heridos leves') expect(s.fallecidos + s.heridosGraves).toBe(0);
     }
   });
 });

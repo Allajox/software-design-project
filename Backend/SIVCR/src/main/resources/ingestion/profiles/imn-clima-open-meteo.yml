@@ -1,0 +1,19 @@
+# Perfil: IMN vía Open-Meteo (API histórica, sin API key, CC BY 4.0) - clima horario por cantón.
+#
+# DESHABILITADO. El IMN no tiene API pública; la alternativa elegida es Open-Meteo, cuyos datos son clima
+# horario (precipitación, humedad relativa, temperatura, código de clima), no siniestros, y no existe una
+# tabla donde guardarlos. Pasos pendientes:
+#   1. definir la tabla destino y su consumidor (por ejemplo, cruzar con siniestros por cantón y hora),
+#   2. confirmar los encabezados reales del CSV de Open-Meteo (traen la unidad entre paréntesis, p. ej.
+#      "temperature_2m (°C)", y varias líneas de metadatos antes de la fila "time,..."; DescargadorSIVCR.java
+#      ya las recorta y añade canton,latitud,longitud) -> POR VERIFICAR,
+#   3. completar este perfil y poner habilitado: true.
+# Al usar estos datos hay que citar la fuente (CC BY 4.0) en el SAD.
+id: imn-clima-open-meteo
+fuente: IMN
+tipo: SINISTER
+descripcion: IMN (Open-Meteo) - clima horario por cantón
+verificacion: POR_VERIFICAR
+habilitado: false
+motivoDeshabilitado: el clima horario de Open-Meteo no son siniestros y todavía no existe una tabla donde guardarlo. Está pendiente definir su mapeo.
+formatos: [CSV]

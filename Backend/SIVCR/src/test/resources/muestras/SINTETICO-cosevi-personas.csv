@@ -1,0 +1,6 @@
+Rol;Tipo de lesión;Edad;Sexo;Vehiculo en  el que viajaba;Año;Provincia ;Cantón ;Distrito;Día;Mes;Edad quinquenal
+Conductor de motocicleta;Herido leve;Desconocida;Hombre;Motocicleta;2024;San José;Escazú;San Rafael;6.Viernes;A. Enero;Desconocida
+Peatón;Herido grave;67;Mujer;No aplica;2023;Limón;Pococí;Guápiles;7.Sábado;D. Abril;De 65 a 69
+Conductor;Ileso;40;Hombre;Automóvil;2022;Alajuela;Alajuela;Alajuela;4.Miércoles;J. Octubre;De 40 a 44
+Pasajero carro;Lesión Ignorada;31;Mujer;Automóvil;2024;Cartago;Paraíso;Paraíso;2.Lunes;B. Febrero;De 30 a 34
+Ciclista;Muerte en sitio;250;Hombre;Bicicleta;2023;Heredia;Heredia;Heredia;3.Martes;C. Marzo;De 75 y más
