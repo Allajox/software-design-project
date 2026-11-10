@@ -26,7 +26,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import model.ingestion.TestSupport.MemLogs;
 import model.ingestion.TestSupport.MemRecords;
-import model.ingestion.TestSupport.MemReports;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -40,18 +39,14 @@ import org.junit.jupiter.api.Test;
 class IngestionManagerTest {
 
     private MemLogs logs;
-    private MemReports reportes;
-    private MemRecords siniestros;
-    private MemRecords victimas;
+    private MemRecords registros;
     private IngestionManager manager;
 
     @BeforeEach
     void preparar() {
         logs = new MemLogs();
-        reportes = new MemReports();
-        siniestros = new MemRecords();
-        victimas = new MemRecords();
-        manager = TestSupport.manager(logs, reportes, siniestros, victimas, 1000, 1000);
+        registros = new MemRecords();
+        manager = TestSupport.manager(logs, registros, 1000, 1000);
     }
 
     private IngestionLog cargar(UploadedFile archivo, DataSource fuente) {
@@ -71,9 +66,9 @@ class IngestionManagerTest {
 
         assertEquals(LoadResult.EXITOSA, log.resultado());
         assertEquals(new QualityCounts(3, 0, 0, 0), log.resumen());
-        assertEquals(3, siniestros.filas.size());
-        assertTrue(victimas.filas.isEmpty());
-        assertTrue(siniestros.filas.stream().allMatch(f -> f.calidad() == QualityStatus.VALIDO));
+        assertEquals(3, registros.siniestros().size());
+        assertTrue(registros.victimas().isEmpty());
+        assertTrue(registros.siniestros().stream().allMatch(f -> f.calidad() == QualityStatus.VALIDO));
         assertTrue(log.mensaje().toLowerCase().contains("exitosa"));
 
         QualityReport reporte = manager.reporteCalidad(log.id()).orElseThrow();
@@ -108,9 +103,9 @@ class IngestionManagerTest {
 
         assertEquals(LoadResult.PARCIAL, log.resultado());
         assertEquals(new QualityCounts(2, 1, 2, 0), log.resumen());
-        assertEquals(3, siniestros.filas.size());
-        assertEquals(2, siniestros.filas.stream().filter(f -> f.calidad() == QualityStatus.VALIDO).count());
-        assertEquals(1, siniestros.filas.stream().filter(f -> f.calidad() == QualityStatus.INCOMPLETO).count());
+        assertEquals(3, registros.siniestros().size());
+        assertEquals(2, registros.siniestros().stream().filter(f -> f.calidad() == QualityStatus.VALIDO).count());
+        assertEquals(1, registros.siniestros().stream().filter(f -> f.calidad() == QualityStatus.INCOMPLETO).count());
 
         List<String> errores = manager.reporteCalidad(log.id()).orElseThrow().errores();
         assertEquals(3, errores.size());
@@ -126,7 +121,7 @@ class IngestionManagerTest {
 
         assertEquals(LoadResult.FALLIDA, log.resultado());
         assertEquals(new QualityCounts(0, 0, 2, 0), log.resumen());
-        assertTrue(siniestros.filas.isEmpty());
+        assertTrue(registros.siniestros().isEmpty());
         assertEquals(2, manager.reporteCalidad(log.id()).orElseThrow().corruptos());
         assertTrue(log.mensaje().contains("ningún registro"));
     }
@@ -134,7 +129,7 @@ class IngestionManagerTest {
     @Test
     void losCorruptosNuncaSePersistenPeroSiQuedanContadosYReportados() {
         IngestionLog log = cargar(csvSiniestros(siniestro(), siniestro("Hora=99:99")), DataSource.COSEVI);
-        assertEquals(1, siniestros.filas.size());
+        assertEquals(1, registros.siniestros().size());
         assertEquals(1, log.resumen().corruptos());
         assertEquals(1, manager.reporteCalidad(log.id()).orElseThrow().errores().size());
     }
@@ -144,7 +139,7 @@ class IngestionManagerTest {
         cargar(csvSiniestros(siniestro("Provincia=Limón", "Cantón=Pérez Zeledón", "Día=7.Sábado", "Mes=D. Abril")),
                 DataSource.COSEVI);
 
-        NormalizedRecord r = siniestros.filas.get(0);
+        NormalizedRecord r = registros.siniestros().get(0);
         assertEquals("LIMON", r.campos().get("provincia"));
         assertEquals("Pérez Zeledón", r.campos().get("canton"));
         assertEquals("SABADO", r.campos().get("dia_semana"));
@@ -163,10 +158,10 @@ class IngestionManagerTest {
         assertEquals("cosevi-personas", log.perfil());
         assertEquals(LoadResult.PARCIAL, log.resultado());
         assertEquals(new QualityCounts(1, 1, 0, 0), log.resumen());
-        assertTrue(siniestros.filas.isEmpty());
-        assertEquals(2, victimas.filas.size());
-        assertEquals(QualityStatus.VALIDO, victimas.filas.get(0).calidad());
-        assertEquals(QualityStatus.INCOMPLETO, victimas.filas.get(1).calidad());
+        assertTrue(registros.siniestros().isEmpty());
+        assertEquals(2, registros.victimas().size());
+        assertEquals(QualityStatus.VALIDO, registros.victimas().get(0).calidad());
+        assertEquals(QualityStatus.INCOMPLETO, registros.victimas().get(1).calidad());
     }
 
     @Test
@@ -185,7 +180,7 @@ class IngestionManagerTest {
         assertEquals(LoadResult.FALLIDA, log.resultado());
         assertTrue(log.mensaje().contains("no coincide con ningún perfil"), log.mensaje());
         assertTrue(log.mensaje().contains("Clase de accidente") || log.mensaje().contains("Rol"), log.mensaje());
-        assertTrue(siniestros.filas.isEmpty() && victimas.filas.isEmpty());
+        assertTrue(registros.siniestros().isEmpty() && registros.victimas().isEmpty());
     }
 
     @Test
@@ -220,7 +215,7 @@ class IngestionManagerTest {
         assertTrue(log.mensaje().contains("CSV, JSON y Excel"));
         assertEquals(1, manager.historial().size());
         assertEquals(List.of(log.mensaje()), manager.reporteCalidad(log.id()).orElseThrow().errores());
-        assertTrue(siniestros.filas.isEmpty());
+        assertTrue(registros.siniestros().isEmpty());
     }
 
     @Test
@@ -279,7 +274,7 @@ class IngestionManagerTest {
 
         assertEquals(LoadResult.PARCIAL, log.resultado());
         assertEquals(new QualityCounts(1, 0, 1, 0), log.resumen());
-        assertEquals(1, siniestros.filas.size());
+        assertEquals(1, registros.siniestros().size());
     }
 
     @Test
@@ -289,7 +284,7 @@ class IngestionManagerTest {
 
         assertEquals(LoadResult.EXITOSA, log.resultado());
         assertEquals(new QualityCounts(2, 0, 0, 0), log.resumen());
-        assertEquals("LIMON", siniestros.filas.get(1).campos().get("provincia"));
+        assertEquals("LIMON", registros.siniestros().get(1).campos().get("provincia"));
     }
 
     // ---- INEC: filtro por causa de muerte ----
@@ -302,7 +297,7 @@ class IngestionManagerTest {
 
         assertEquals(LoadResult.EXITOSA, log.resultado());
         assertEquals(new QualityCounts(2, 0, 0, 1), log.resumen());
-        assertEquals("FALLECIDO", siniestros.filas.get(0).campos().get("severidad"));
+        assertEquals("FALLECIDO", registros.siniestros().get(0).campos().get("severidad"));
         assertTrue(log.mensaje().contains("omitieron 1"));
     }
 
@@ -326,7 +321,7 @@ class IngestionManagerTest {
         assertEquals(LoadResult.EXITOSA, primera.resultado());
         assertEquals(LoadResult.FALLIDA, segunda.resultado());
         assertTrue(segunda.mensaje().contains("n.º " + primera.id()), segunda.mensaje());
-        assertEquals(2, siniestros.filas.size());   // no se duplicaron registros
+        assertEquals(2, registros.siniestros().size());   // no se duplicaron registros
         assertEquals(2, manager.historial().size()); // pero el intento quedó registrado
     }
 
@@ -344,7 +339,7 @@ class IngestionManagerTest {
         UploadedFile archivo = csvSiniestros(siniestro(), siniestro("Año=2022"));
         CountDownLatch dentro = new CountDownLatch(1);
         CountDownLatch libera = new CountDownLatch(1);
-        siniestros.alGuardar = lote -> {
+        registros.alGuardar = lote -> {
             dentro.countDown();
             try {
                 libera.await(10, TimeUnit.SECONDS);
@@ -364,7 +359,7 @@ class IngestionManagerTest {
 
             libera.countDown();
             assertEquals(LoadResult.EXITOSA, primera.get(10, TimeUnit.SECONDS).resultado());
-            assertEquals(2, siniestros.filas.size());
+            assertEquals(2, registros.siniestros().size());
         } finally {
             libera.countDown();
             hilo.shutdownNow();
@@ -375,18 +370,18 @@ class IngestionManagerTest {
 
     @Test
     void guardaPorLotesDelTamanoConfigurado() {
-        manager = TestSupport.manager(logs, reportes, siniestros, victimas, 2, 1000);
+        manager = TestSupport.manager(logs, registros, 2, 1000);
         IngestionLog log = cargar(csvSiniestros(siniestro(), siniestro("Año=2019"), siniestro("Año=2020"),
                 siniestro("Año=2021"), siniestro("Año=2022")), DataSource.COSEVI);
 
         assertEquals(LoadResult.EXITOSA, log.resultado());
-        assertEquals(List.of(2, 2, 1), siniestros.lotes);
-        assertEquals(5, siniestros.filas.size());
+        assertEquals(List.of(2, 2, 1), registros.lotes);
+        assertEquals(5, registros.siniestros().size());
     }
 
     @Test
     void elReporteGuardaSoloLosPrimerosErroresPeroLosContadoresSonExactos() {
-        manager = TestSupport.manager(logs, reportes, siniestros, victimas, 1000, 3);
+        manager = TestSupport.manager(logs, registros, 1000, 3);
         String[] corruptas = new String[10];
         for (int i = 0; i < corruptas.length; i++) {
             corruptas[i] = siniestro("Año=mal" + i);
@@ -402,9 +397,9 @@ class IngestionManagerTest {
 
     @Test
     void siFallaAMitadDeLaCargaSeBorraLoGuardadoYSeRegistraLaFalla() {
-        manager = TestSupport.manager(logs, reportes, siniestros, victimas, 2, 1000);
-        siniestros.alGuardar = lote -> {
-            if (!siniestros.lotes.isEmpty()) {
+        manager = TestSupport.manager(logs, registros, 2, 1000);
+        registros.alGuardar = lote -> {
+            if (!registros.lotes.isEmpty()) {
                 throw new IllegalStateException("fallo simulado de base de datos: dato-sensible-123");
             }
         };
@@ -412,8 +407,8 @@ class IngestionManagerTest {
                 siniestro("Año=2021")), DataSource.COSEVI);
 
         assertEquals(LoadResult.FALLIDA, log.resultado());
-        assertTrue(siniestros.filas.isEmpty(), "no debe quedar una carga a medias");
-        assertTrue(siniestros.purgados.contains(log.id()));
+        assertTrue(registros.siniestros().isEmpty(), "no debe quedar una carga a medias");
+        assertTrue(registros.purgados.contains(log.id()));
         assertTrue(log.mensaje().contains("error inesperado"));
         assertFalse(log.mensaje().contains("dato-sensible-123"), "el detalle técnico no se muestra al usuario");
         assertEquals(LoadResult.FALLIDA, logs.findById(log.id()).orElseThrow().resultado());

@@ -38,12 +38,9 @@ public class JdbcVictimRepository implements VictimRepository {
         this.jdbc = jdbc;
     }
 
-    /** WHERE ya armado y sus parámetros. */
-    private record Consulta(String where, MapSqlParameterSource parametros) { }
-
     @Override
     public PerfilVictimas perfil(FilterCriteria c) {
-        Consulta q = armarConsulta(c);
+        Filtros.Consulta q = Filtros.personas(c);
 
         // totales: personas, sin edad, sin género (masculino/femenino)
         long[] totales = jdbc.queryForObject(
@@ -86,49 +83,6 @@ public class JdbcVictimRepository implements VictimRepository {
 
         return new PerfilVictimas(totales[0], totales[1], totales[2], tramos(masculino, femenino), fatalidad,
             filtrosNoAplicados(c));
-    }
-
-    /** Filtros de víctimas: los de ubicación y tiempo que existen en victim, más edad y género. */
-    private static Consulta armarConsulta(FilterCriteria c) {
-        StringBuilder sql = new StringBuilder(" WHERE calidad = 'VALIDO'");
-        MapSqlParameterSource p = new MapSqlParameterSource();
-        if (c.provincia() != null) {
-            sql.append(" AND provincia = :provincia");
-            p.addValue("provincia", c.provincia().name());
-        }
-        if (c.canton() != null) {
-            sql.append(" AND canton = :canton");
-            p.addValue("canton", c.canton());
-        }
-        if (c.distrito() != null) {
-            sql.append(" AND distrito = :distrito");
-            p.addValue("distrito", c.distrito());
-        }
-        if (c.anio() != null) {
-            sql.append(" AND anio = :anio");
-            p.addValue("anio", c.anio());
-        }
-        if (c.mes() != null) {
-            sql.append(" AND mes = :mes");
-            p.addValue("mes", c.mes());
-        }
-        if (c.diaSemana() != null) {
-            sql.append(" AND dia_semana = :dia");
-            p.addValue("dia", c.diaSemana().name());
-        }
-        if (c.edadMin() != null) {
-            sql.append(" AND edad >= :edadMin");
-            p.addValue("edadMin", c.edadMin());
-        }
-        if (c.edadMax() != null) {
-            sql.append(" AND edad <= :edadMax");
-            p.addValue("edadMax", c.edadMax());
-        }
-        if (c.genero() != null) {
-            sql.append(" AND genero = :genero");
-            p.addValue("genero", c.genero().name());
-        }
-        return new Consulta(sql.toString(), p);
     }
 
     /**

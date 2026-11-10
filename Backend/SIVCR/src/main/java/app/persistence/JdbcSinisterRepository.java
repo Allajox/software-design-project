@@ -16,7 +16,6 @@ import model.FilterCriteria;
 import model.Sinister;
 import model.SinisterRepository;
 import model.dto.Page;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -31,101 +30,50 @@ public class JdbcSinisterRepository implements SinisterRepository {
         "SELECT provincia, canton, distrito, ruta, km, lat, lon, tipo_vehiculo, severidad, clima, calzada, "
       + "tiempo_respuesta_min, calidad, fecha, anio, mes, dia_semana, franja FROM sinister";
 
+    private static final String ORDEN_POR_OMISION = " ORDER BY anio, mes, id";
+
     private final NamedParameterJdbcTemplate jdbc;
 
     public JdbcSinisterRepository(NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
-    /** WHERE ya armado y sus parámetros. */
-    private record Consulta(String where, MapSqlParameterSource parametros) {}
-
     @Override
     public List<Sinister> buscar(FilterCriteria c) {
-        Consulta q = armarConsulta(c);
-        return jdbc.query(COLUMNAS + q.where() + " ORDER BY anio, mes, id", q.parametros(),
+        Filtros.Consulta q = Filtros.siniestros(c);
+        return jdbc.query(COLUMNAS + q.where() + ORDEN_POR_OMISION, q.parametros(),
             JdbcSinisterRepository::filaASiniestro);
     }
 
     @Override
-    public Page<Sinister> buscar(FilterCriteria c, int pagina, int tamano, String campoOrden, boolean descendente) {
-        String orden = " ORDER BY anio, mes, id";
-        if (campoOrden != null) {
-            if (!CAMPOS_ORDENABLES.contains(campoOrden)) { // los nombres coinciden con las columnas
-                throw new IllegalArgumentException("Campo de orden no permitido: " + campoOrden);
-            }
-            orden = " ORDER BY " + campoOrden + (descendente ? " DESC" : " ASC") + ", id";
-        }
-        Consulta q = armarConsulta(c);
+    public Page<Sinister> buscar(FilterCriteria c, int pagina, int tamano, List<Orden> orden) {
+        Filtros.Consulta q = Filtros.siniestros(c);
         Long total = jdbc.queryForObject("SELECT count(*) FROM sinister" + q.where(), q.parametros(), Long.class);
 
         q.parametros().addValue("limite", tamano);
         q.parametros().addValue("desplazamiento", (long) pagina * tamano);
         List<Sinister> contenido = jdbc.query(
-            COLUMNAS + q.where() + orden + " LIMIT :limite OFFSET :desplazamiento",
+            COLUMNAS + q.where() + clausulaOrden(orden) + " LIMIT :limite OFFSET :desplazamiento",
             q.parametros(), JdbcSinisterRepository::filaASiniestro);
         return new Page<>(contenido, total == null ? 0 : total, pagina, tamano);
     }
 
-    private Consulta armarConsulta(FilterCriteria c) {
-        // Solo registros VALIDO: los INCOMPLETO no alimentan lo oficial
-        StringBuilder sql = new StringBuilder(" WHERE calidad = 'VALIDO'");
-        MapSqlParameterSource p = new MapSqlParameterSource();
-
-        // --- Filtros de texto / enums (null = sin filtro) ---
-        if (c.provincia() != null) {
-            sql.append(" AND provincia = :provincia");
-            p.addValue("provincia", c.provincia().name());
+    /**
+     * ORDER BY de los niveles pedidos, en ese orden, y el id al final para desempatar. Los nombres de campo coinciden
+     * con las columnas y se validan contra la lista cerrada. Los vacíos van siempre al final, sea cual sea el sentido.
+     */
+    static String clausulaOrden(List<Orden> orden) {
+        if (orden == null || orden.isEmpty()) {
+            return ORDEN_POR_OMISION;
         }
-        if (c.canton() != null) {
-            sql.append(" AND canton = :canton");
-            p.addValue("canton", c.canton());
+        StringBuilder sql = new StringBuilder(" ORDER BY ");
+        for (Orden nivel : orden) {
+            if (!CAMPOS_ORDENABLES.contains(nivel.campo())) {
+                throw new IllegalArgumentException("Campo de orden no permitido: " + nivel.campo());
+            }
+            sql.append(nivel.campo()).append(nivel.descendente() ? " DESC" : " ASC").append(" NULLS LAST, ");
         }
-        if (c.distrito() != null) {
-            sql.append(" AND distrito = :distrito");
-            p.addValue("distrito", c.distrito());
-        }
-        if (c.ruta() != null) {
-            sql.append(" AND ruta = :ruta");
-            p.addValue("ruta", c.ruta());
-        }
-        if (c.tipoVehiculo() != null) {
-            sql.append(" AND tipo_vehiculo = :tipoVehiculo");
-            p.addValue("tipoVehiculo", c.tipoVehiculo().name());
-        }
-        if (c.severidad() != null) {
-            sql.append(" AND severidad = :severidad");
-            p.addValue("severidad", c.severidad().name());
-        }
-        if (c.clima() != null) {
-            sql.append(" AND clima = :clima");
-            p.addValue("clima", c.clima().name());
-        }
-        if (c.calzada() != null) {
-            sql.append(" AND calzada = :calzada");
-            p.addValue("calzada", c.calzada().name());
-        }
-
-        // --- Tiempo: COSEVI no trae fecha exacta, trae anio, mes, dia_semana y franja ---
-        if (c.anio() != null) {
-            sql.append(" AND anio = :anio");
-            p.addValue("anio", c.anio());
-        }
-        if (c.mes() != null) {
-            sql.append(" AND mes = :mes");
-            p.addValue("mes", c.mes());
-        }
-        if (c.diaSemana() != null) {
-            // Day guarda LUNES ... DOMINGO, igual que la columna dia_semana
-            sql.append(" AND dia_semana = :dia");
-            p.addValue("dia", c.diaSemana().name());
-        }
-        if (c.franja() != null) {
-            // TimeSlot guarda MADRUGADA, MANANA, TARDE, NOCHE, igual que la columna franja
-            sql.append(" AND franja = :franja");
-            p.addValue("franja", c.franja().name());
-        }
-        return new Consulta(sql.toString(), p);
+        return sql.append("id").toString();
     }
 
     private static Sinister filaASiniestro(ResultSet rs, int fila) throws SQLException {

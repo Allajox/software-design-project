@@ -11,12 +11,18 @@ public interface SinisterRepository {
     Set<String> CAMPOS_ORDENABLES = Set.of(
             "anio", "mes", "provincia", "canton", "distrito", "ruta", "severidad", "clima", "calzada");
 
+    /** Cuántos campos como máximo se pueden combinar en un orden (ej. año, mes, provincia). */
+    int MAX_NIVELES_DE_ORDEN = 4;
+
+    /** Un nivel del orden: el campo (uno de CAMPOS_ORDENABLES) y su sentido. */
+    record Orden(String campo, boolean descendente) { }
+
     /** Todos los siniestros que calzan con el filtro (sin paginar). */
     List<Sinister> buscar(FilterCriteria criterios);
 
     /**
-     * Una página (pagina empieza en 0). campoOrden es uno de CAMPOS_ORDENABLES, o null para ordenar por año y mes;
-     * siempre se desempata por id para que las páginas no se mezclen.
+     * Una página (pagina empieza en 0). orden lleva los niveles en el orden en que se aplican (el primero manda);
+     * vacío ordena por año y mes. Siempre se desempata por id para que las páginas no se mezclen.
      */
-    Page<Sinister> buscar(FilterCriteria criterios, int pagina, int tamano, String campoOrden, boolean descendente);
+    Page<Sinister> buscar(FilterCriteria criterios, int pagina, int tamano, List<Orden> orden);
 }

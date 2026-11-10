@@ -8,8 +8,11 @@ import enums.RoadStatus;
 import enums.Severity;
 import enums.TimeSlot;
 import enums.VehycleType;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TreeSet;
 import model.ConcreteFilterCriteriaBuilder;
 import model.FilterCriteria;
@@ -19,6 +22,7 @@ import model.PerfilVictimas;
 import model.SavedFilter;
 import model.Sinister;
 import model.SinisterRepository;
+import model.SinisterRepository.Orden;
 import model.VictimRepository;
 import model.dto.Page;
 
@@ -48,16 +52,16 @@ public class FilterManager {
 
     /**
      * Una página de siniestros que calzan con el filtro (HU 20). pagina empieza en 0; tamano se limita a 200;
-     * orden es "campo" o "campo:desc" (campos: ver SinisterRepository.CAMPOS_ORDENABLES); sin orden se usa anio, mes.
+     * orden admite varios niveles separados por coma, cada uno "campo" o "campo:desc" (ej. "anio:desc,mes,provincia";
+     * campos: ver SinisterRepository.CAMPOS_ORDENABLES; hasta MAX_NIVELES_DE_ORDEN); sin orden se usa anio, mes.
      */
     public Page<Sinister> getRegistros(FilterCriteria c, int pagina, int tamano, String orden) {
         if (pagina < 0) {
             throw new FiltroInvalidoException("La página no puede ser negativa.");
         }
-        String[] campoYDireccion = ordenar(orden);
+        List<Orden> niveles = ordenar(orden);
         validarParaSiniestros(c);
-        return siniestros.buscar(c, pagina, Math.max(1, Math.min(tamano, TAMANO_MAXIMO)), campoYDireccion[0],
-                "desc".equals(campoYDireccion[1]));
+        return siniestros.buscar(c, pagina, Math.max(1, Math.min(tamano, TAMANO_MAXIMO)), niveles);
     }
 
     /** Perfil de víctimas (personas VALIDO) con los filtros que existen en la tabla de personas. */
@@ -126,19 +130,32 @@ public class FilterManager {
         }
     }
 
-    /** "campo" o "campo:desc" -> {campo, direccion}; sin orden, {null, "asc"}. */
-    private static String[] ordenar(String orden) {
+    /** "a:desc,b" -> [Orden(a, desc), Orden(b, asc)]; sin orden, lista vacía. Rechaza campos repetidos o desconocidos. */
+    static List<Orden> ordenar(String orden) {
         if (orden == null || orden.isBlank()) {
-            return new String[] {null, "asc"};
+            return List.of();
         }
-        String[] partes = orden.trim().split(":", -1);
-        String campo = partes[0].trim().toLowerCase(Locale.ROOT);
-        String direccion = partes.length == 2 ? partes[1].trim().toLowerCase(Locale.ROOT) : "asc";
-        if (partes.length > 2 || !SinisterRepository.CAMPOS_ORDENABLES.contains(campo)
-                || !(direccion.equals("asc") || direccion.equals("desc"))) {
-            throw new FiltroInvalidoException("Orden no permitido. Use \"campo\" o \"campo:desc\" con uno de: "
-                    + String.join(", ", new TreeSet<>(SinisterRepository.CAMPOS_ORDENABLES)) + ".");
+        List<Orden> niveles = new ArrayList<>();
+        Set<String> usados = new HashSet<>();
+        for (String nivel : orden.split(",", -1)) {
+            String[] partes = nivel.trim().split(":", -1);
+            String campo = partes[0].trim().toLowerCase(Locale.ROOT);
+            String direccion = partes.length == 2 ? partes[1].trim().toLowerCase(Locale.ROOT) : "asc";
+            if (partes.length > 2 || !SinisterRepository.CAMPOS_ORDENABLES.contains(campo)
+                    || !(direccion.equals("asc") || direccion.equals("desc"))) {
+                throw new FiltroInvalidoException("Orden no permitido. Use \"campo\" o \"campo:desc\", separados por "
+                        + "coma, con campos de: " + String.join(", ", new TreeSet<>(SinisterRepository.CAMPOS_ORDENABLES))
+                        + ".");
+            }
+            if (!usados.add(campo)) {
+                throw new FiltroInvalidoException("El campo \"" + campo + "\" aparece más de una vez en el orden.");
+            }
+            niveles.add(new Orden(campo, direccion.equals("desc")));
         }
-        return new String[] {campo, direccion};
+        if (niveles.size() > SinisterRepository.MAX_NIVELES_DE_ORDEN) {
+            throw new FiltroInvalidoException("El orden admite hasta " + SinisterRepository.MAX_NIVELES_DE_ORDEN
+                    + " campos.");
+        }
+        return niveles;
     }
 }
