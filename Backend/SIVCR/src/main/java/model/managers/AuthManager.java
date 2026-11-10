@@ -118,6 +118,15 @@ public class AuthManager {
         }
     }
 
+    /**
+     * Cierra todas las sesiones abiertas de un usuario. La gestión de usuarios (HU 29) lo usa al desactivar una cuenta
+     * o cambiarle el rol o la contraseña: la sesión guarda el rol con que se inició y sin esto el cambio no regiría
+     * hasta que el token venciera.
+     */
+    public void cerrarSesionesDe(long usuarioId) {
+        sesiones.values().removeIf(s -> s.usuario().id() == usuarioId);
+    }
+
     private static SivcrException sesionInvalida() {
         return new SivcrException(Tipo.NO_AUTENTICADO, "La sesión no es válida o ya venció.");
     }
