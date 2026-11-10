@@ -1,10 +1,8 @@
 <main class="login-page">
-  <section class="login-card">
-    <header class="login-header">
-      <div class="logo" aria-hidden="true">🚦</div>
-      <h1>SIVCR</h1>
-      <p>Sistema de Información y Predictibilidad Vial de Costa Rica</p>
-    </header>
+  <p class="titulo-app">Panel de indicadores</p>
+
+  <section class="login-card" aria-labelledby="titulo-login">
+    <h1 id="titulo-login">Iniciar Sesión</h1>
 
     <form [formGroup]="form" (ngSubmit)="iniciarSesion()" novalidate>
       @if (error()) {
@@ -18,11 +16,13 @@
           type="email"
           formControlName="correo"
           autocomplete="username"
-          placeholder="usuario@institucion.go.cr"
+          placeholder="example@email.com"
           [class.invalid]="correo.invalid && correo.touched"
+          [attr.aria-invalid]="correo.invalid && correo.touched ? 'true' : null"
+          [attr.aria-describedby]="correo.touched && correo.errors ? 'correo-error' : null"
         />
         @if (correo.touched && correo.errors) {
-          <small class="error-text">
+          <small id="correo-error" class="error-text">
             @if (correo.errors['required']) {
               El correo es obligatorio.
             } @else if (correo.errors['email']) {
@@ -42,26 +42,26 @@
             autocomplete="current-password"
             placeholder="••••••••"
             [class.invalid]="contrasena.invalid && contrasena.touched"
+            [attr.aria-invalid]="contrasena.invalid && contrasena.touched ? 'true' : null"
+            [attr.aria-describedby]="contrasena.touched && contrasena.errors ? 'contrasena-error' : null"
           />
           <button type="button" class="toggle" (click)="alternarClave()"
-                  [attr.aria-label]="mostrarClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                  [attr.aria-label]="mostrarClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                  [attr.aria-pressed]="mostrarClave()">
             {{ mostrarClave() ? 'Ocultar' : 'Ver' }}
           </button>
         </div>
         @if (contrasena.touched && contrasena.errors) {
-          <small class="error-text">
-            @if (contrasena.errors['required']) {
-              La contraseña es obligatoria.
-            } @else if (contrasena.errors['minlength']) {
-              Debe tener al menos 6 caracteres.
-            }
-          </small>
+          <small id="contrasena-error" class="error-text">La contraseña es obligatoria.</small>
         }
       </div>
 
-      <button type="submit" class="btn-primary" [disabled]="cargando()">
-        @if (cargando()) { Ingresando... } @else { Iniciar sesión }
-      </button>
+      <div class="botones">
+        <button type="submit" class="btn" [disabled]="cargando()">
+          @if (cargando()) { Ingresando… } @else { Ingresar }
+        </button>
+        <a class="btn" routerLink="/publico">Ingresar sin Credenciales</a>
+      </div>
     </form>
 
     @if (modoDemo) {
