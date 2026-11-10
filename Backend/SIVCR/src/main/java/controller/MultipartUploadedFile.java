@@ -5,7 +5,7 @@ import java.io.InputStream;
 import model.ingestion.UploadedFile;
 import org.springframework.web.multipart.MultipartFile;
 
-/** Adaptador: presenta un MultipartFile de Spring como UploadedFile del dominio. */
+// Adaptador: presenta un MultipartFile de Spring como UploadedFile del dominio.
 class MultipartUploadedFile implements UploadedFile {
 
     private final MultipartFile archivo;
