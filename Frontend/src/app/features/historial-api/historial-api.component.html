@@ -1,0 +1,98 @@
+<section class="pagina">
+  <h1>Historial de consultas</h1>
+  <p class="subtitulo">
+    Sus consultas guardadas y las últimas que hizo en el Explorador de registros. Son suyas: otras personas no las ven.
+    El servidor anota solo las búsquedas con filtros.
+  </p>
+
+  @if (estado() === 'cargando') {
+    <p class="estado-carga" role="status"><span class="spinner-mini" aria-hidden="true"></span> Cargando su historial…</p>
+  } @else if (estado() === 'error') {
+    <div class="vacio error-carga" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="reintentar" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else {
+    <!-- ===== Guardadas ===== -->
+    <section class="bloque" aria-labelledby="titulo-guardadas">
+      <header class="bloque-cab">
+        <h2 id="titulo-guardadas">Consultas guardadas <span class="contador">{{ guardadas().length }}</span></h2>
+        <span class="pill-pendiente" title="El servidor todavía no tiene esos servicios">Renombrar y eliminar: pendiente</span>
+      </header>
+
+      @if (guardadas().length === 0) {
+        <div class="vacio">
+          <p>
+            Aún no hay consultas guardadas. En el <a routerLink="/registros">Explorador de registros</a>, aplique filtros y use
+            <strong>Guardar consulta</strong>.
+          </p>
+        </div>
+      } @else {
+        <ul class="lista">
+          @for (e of guardadas(); track e.id) {
+            <li class="consulta">
+              <div class="cabecera">
+                <h3>{{ e.titulo }}</h3>
+                <p class="meta">{{ e.subtitulo }}</p>
+              </div>
+              <ul class="chips" aria-label="Filtros de la consulta">
+                @for (f of e.resumen; track f) { <li>{{ f }}</li> }
+                @if (e.conCriteriosNoAplicables) { <li class="advertencia">Incluye criterios que no se aplican a siniestros</li> }
+              </ul>
+              <div class="acciones">
+                <button type="button" class="primario" (click)="aplicar(e)">
+                  <app-icon name="aplicar" /> Aplicar en el explorador
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- ===== Recientes ===== -->
+    <section class="bloque" aria-labelledby="titulo-recientes">
+      <header class="bloque-cab">
+        <h2 id="titulo-recientes">Historial reciente <span class="contador">{{ recientes().length }}</span></h2>
+        <span class="pill-pendiente" title="El servidor todavía no tiene ese servicio">Limpiar historial: pendiente</span>
+      </header>
+
+      @if (recientes().length === 0) {
+        <div class="vacio">
+          <p>El historial está vacío. Aparecerán aquí las combinaciones de filtros que use en el <a routerLink="/registros">Explorador de registros</a>.</p>
+        </div>
+      } @else {
+        <ul class="lista">
+          @for (e of recientes(); track e.id) {
+            <li class="consulta">
+              <div class="cabecera">
+                <h3>{{ e.titulo }}</h3>
+              </div>
+              <ul class="chips" aria-label="Filtros de la consulta">
+                @for (f of e.resumen; track f) { <li>{{ f }}</li> }
+                @if (e.conCriteriosNoAplicables) { <li class="advertencia">Incluye criterios que no se aplican a siniestros</li> }
+              </ul>
+              <div class="acciones">
+                <button type="button" class="primario" (click)="aplicar(e)">
+                  <app-icon name="aplicar" /> Aplicar en el explorador
+                </button>
+                <button type="button" (click)="pedirGuardar(e)">
+                  <app-icon name="guardar" /> Guardar con nombre
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</section>
+
+<app-dialogo-guardar-consulta-api
+  [abierto]="porGuardar() !== null"
+  [resumen]="resumenPorGuardar()"
+  [errorServidor]="errorGuardar()"
+  [guardando]="guardando()"
+  (confirmar)="confirmarGuardar($event)"
+  (cerrar)="porGuardar.set(null)"
+/>

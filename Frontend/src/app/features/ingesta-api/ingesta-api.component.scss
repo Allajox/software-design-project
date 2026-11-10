@@ -1,0 +1,26 @@
+.paso { margin: 1rem 0 0.4rem; padding: 0; font-size: 0.86rem; font-weight: 700; color: var(--azul); }
+.modos .paso { margin-top: 0; }
+.modo.deshabilitado { cursor: not-allowed; background: var(--fondo); }
+.modo.deshabilitado strong { color: var(--gris); }
+.modo small { display: block; }
+.modo .pendiente { margin-top: 2px; font-weight: 600; color: var(--aviso); }
+
+.subir { margin: 1rem 0 0; }
+.aviso-espera { margin: 4px 0 0; font-size: 0.84rem; color: var(--gris); }
+
+/* Fondo blanco y franja de color a la izquierda: así los cuadros de conteo conservan su propio color */
+.resultado { border-left-width: 6px; }
+.resultado.ok { border-color: var(--ok); --glifo: var(--ok); }
+.resultado.parcial { border-color: #d99a00; --glifo: #b87a00; }
+.resultado.fallida { border-color: var(--error); --glifo: var(--error); }
+.resultado h2 { display: inline-flex; align-items: center; gap: 8px; }
+.mensaje-carga { margin: 0 0 0.9rem; font-size: 0.92rem; }
+
+.etq-grav.ok { color: var(--ok); background: var(--ok-fondo); }
+
+.errores { max-height: 320px; margin: 0.4rem 0 0; padding: 0.6rem 1rem 0.6rem 2.2rem; overflow: auto; font-size: 0.84rem; background: var(--fondo); border: 1px solid var(--borde); border-radius: 10px; }
+.errores li { padding: 2px 0; }
+
+.archivo-celda { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.enlace:disabled { color: var(--gris); cursor: default; text-decoration: none; }
+table.cargas { min-width: 780px; }

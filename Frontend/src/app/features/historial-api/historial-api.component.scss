@@ -1,0 +1,27 @@
+.pill-pendiente {
+  padding: 1px 9px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5a3b00;
+  background: #fff4dc;
+  border: 1px solid #f0cf8a;
+  border-radius: 999px;
+}
+
+.chips li.advertencia { color: #5a3b00; background: #fff4dc; }
+
+.estado-carga { display: inline-flex; align-items: center; gap: 8px; color: var(--gris); }
+.spinner-mini {
+  width: 14px; height: 14px;
+  border: 2px solid var(--borde); border-top-color: var(--azul-claro); border-radius: 50%;
+  animation: giro 0.8s linear infinite;
+}
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner-mini { animation-duration: 3s; } }
+
+.error-carga p { color: var(--rojo); }
+.reintentar {
+  padding: 7px 16px; font: inherit; font-weight: 600; color: #fff;
+  background: var(--azul-claro); border: 1px solid var(--azul-claro); border-radius: 8px; cursor: pointer;
+}
+.reintentar:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
