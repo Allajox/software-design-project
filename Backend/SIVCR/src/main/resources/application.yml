@@ -8,17 +8,6 @@ spring:
     username: ${DB_USER:sivcr}
     password: ${DB_PASSWORD:sivcr}
 
-  jpa:
-    open-in-view: false
-    hibernate:
-      # El esquema lo crea Flyway; Hibernate solo verifica que las entidades coincidan con las tablas.
-      ddl-auto: validate
-    properties:
-      hibernate:
-        jdbc:
-          batch_size: 50          # coincide con INCREMENT BY 50 de sinister_seq y victim_seq
-        order_inserts: true
-
   flyway:
     enabled: true
     locations: classpath:db/migration
