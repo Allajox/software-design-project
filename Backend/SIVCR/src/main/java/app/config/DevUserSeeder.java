@@ -7,14 +7,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * SOLO DESARROLLO (perfil "dev"): crea en app_user los tres usuarios de demostración del frontend (los mismos de
- * core/usuarios/semilla.ts), porque ingestion_log.usuario_id referencia app_user. Los ids 1, 2 y 3 coinciden con
- * "mock-jwt-<id>" y con los de AuthService.USUARIOS_DEMO.
- *
- * Las contraseñas se guardan como hash PBKDF2 (el mismo valor que ya está en la semilla del frontend, que son las
- * contraseñas de demostración Admin123, Analista123 y Consulta123), así que con ellas se puede iniciar sesión de
- * verdad en POST /api/auth/login. Un servidor accesible desde fuera NO debe usar el perfil dev ni estas cuentas.
- * BORRAR cuando exista la gestión de usuarios.
+ * SOLO DESARROLLO (perfil "dev"): crea en app_user los tres usuarios de demostración (admin@sivcr.go.cr,
+ * analista@sivcr.go.cr y consultor@sivcr.go.cr), para que una base recién creada tenga con quién iniciar sesión y
+ * entrar a "Usuarios y Configuración" a crear las cuentas reales. Sus contraseñas de demostración son Admin123,
+ * Analista123 y Consulta123 (guardadas como hash PBKDF2). Un servidor accesible desde fuera NO debe usar el perfil dev
+ * ni estas cuentas: ahí el primer administrador se crea a mano en la base y las demás cuentas, desde la pantalla de
+ * usuarios.
  */
 @Component
 @Profile("dev")
