@@ -3,6 +3,7 @@ package model;
 import enums.UserRole;
 
 public class User {
+    private Long id;
     private String name;
     private String email;
     private String password;
@@ -20,12 +21,32 @@ public class User {
         return true;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public String getName() {
         return name;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
-        return "User{" + "name=" + name + ", email=" + email + ", password=" + password + ", role=" + role + '}';
+        return "User{" + "id=" + id + ", name=" + name + ", email=" + email + ", password=" + password + ", role=" + role + '}';
     }
 }

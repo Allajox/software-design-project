@@ -1,5 +1,6 @@
 package controller;
 
+import app.persistence.FilterRecordRepository;
 import enums.Climate;
 import enums.Day;
 import enums.Province;
@@ -9,7 +10,6 @@ import enums.Severity;
 import enums.TimeSlot;
 import enums.VehycleType;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 import model.ConcreteFilterCriteriaBuilder;
 import model.FilterCriteria;
@@ -17,6 +17,8 @@ import model.Repository;
 import model.Sinister;
 import model.SavedFilter;
 import model.User;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -26,11 +28,15 @@ public class FilterManager {
     private ConcreteFilterCriteriaBuilder builder = new ConcreteFilterCriteriaBuilder();
     
     private Repository<Sinister> sinisterRepo;
-    private Repository<SavedFilter> filtroRepo;
+    private FilterRecordRepository filtroRepo;
     private final NamedParameterJdbcTemplate jdbc;
 
-    public FilterManager(NamedParameterJdbcTemplate jdbc) {
+    public FilterManager(NamedParameterJdbcTemplate jdbc, 
+                        @Qualifier("filterRepository") FilterRecordRepository filtroRepo,
+                        @Qualifier("userRepository") Repository<User> userRepo) {
         this.jdbc = jdbc;
+        this.filtroRepo = filtroRepo;
+        this.userRepo = userRepo;
     }
     /*
     public Page<Sinister> getRegistros(FilterCriteria c, int pagina, String orden) {
@@ -44,7 +50,7 @@ public class FilterManager {
         StringBuilder sql = new StringBuilder("SELECT * FROM sinister WHERE 1=1");
         MapSqlParameterSource p = new MapSqlParameterSource();
 
-        // --- Filtros de texto / enums (null = sin filtro) ---
+        // null = no filter applied
         if (c.getProvincia() != null) {
             sql.append(" AND provincia = :provincia");
             p.addValue("provincia", c.getProvincia().name());
@@ -123,17 +129,26 @@ public class FilterManager {
         );
     });
     }
-
     
     public SavedFilter guardarFiltro(String nombre, FilterCriteria c, User u) {
-        SavedFilter filtro = new SavedFilter(nombre, c, u);
-        return filtro;
+        if (nombre == null || nombre.isBlank())
+            throw new IllegalArgumentException("El nombre del filtro no puede estar vacío");
+        
+        SavedFilter filtro = new SavedFilter(nombre.trim(), c, u);
+        
+        try {
+            return filtroRepo.save(filtro);
+            
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalStateException("Ya existe un filtro llamado '" + nombre + "' para este usuario", e);
+        }
     }
     
     public List<SavedFilter> getFiltrosGuardados(User u) {
-        // To-do
-        List<SavedFilter> list = new ArrayList<>();
-        return list;
+        if (u == null || u.getId() == null) {
+            throw new IllegalArgumentException("Usuario inexistente.");
+        }
+        return filtroRepo.findByUsuario(u);
     }
     
     public FilterCriteria nuevoFiltro(Province provincia, String canton, String distrito, 
