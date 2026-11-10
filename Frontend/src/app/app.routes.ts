@@ -1,6 +1,11 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, roleGuard } from './core/guards/auth.guard';
-import { ROLES_ANALISIS, SOLO_ADMIN, TODOS_LOS_ROLES } from './core/config/roles.config';
+import { API_CONFIG } from './core/config/api.config';
+import { AuthService } from './core/services/auth.service';
+import {
+  ROLES_ANALISIS, ROLES_DASHBOARD, ROLES_INGESTA, ROLES_REGISTROS, SOLO_ADMIN, rutaInicial,
+} from './core/config/roles.config';
 
 export const routes: Routes = [
   {
@@ -22,32 +27,40 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/main-layout/main-layout.component').then((m) => m.MainLayoutComponent),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      // cada rol empieza en lo suyo: el dashboard, o la vista pública si su rol no tiene dashboard
+      { path: '', pathMatch: 'full', redirectTo: () => rutaInicial(inject(AuthService).usuario()?.rol) },
 
       // ----- Fase 1 -----
       {
         path: 'dashboard',
-        canActivate: [roleGuard(TODOS_LOS_ROLES)],
+        canActivate: [roleGuard(ROLES_DASHBOARD)],
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'registros',
-        canActivate: [roleGuard(TODOS_LOS_ROLES)],
+        canActivate: [roleGuard(ROLES_REGISTROS)],
+        // Con datosReales: lee del servidor (POST /records/search). Si no, la versión de demostración.
         loadComponent: () =>
-          import('./features/registros/registros.component').then((m) => m.RegistrosComponent),
+          API_CONFIG.datosReales
+            ? import('./features/registros-api/registros-api.component').then((m) => m.RegistrosApiComponent)
+            : import('./features/registros/registros.component').then((m) => m.RegistrosComponent),
       },
       {
         path: 'historial',
         canActivate: [roleGuard(ROLES_ANALISIS)],
         loadComponent: () =>
-          import('./features/historial/historial.component').then((m) => m.HistorialComponent),
+          API_CONFIG.datosReales
+            ? import('./features/historial-api/historial-api.component').then((m) => m.HistorialApiComponent)
+            : import('./features/historial/historial.component').then((m) => m.HistorialComponent),
       },
       {
         path: 'ingesta',
-        canActivate: [roleGuard(ROLES_ANALISIS)],
+        canActivate: [roleGuard(ROLES_INGESTA)],
         loadComponent: () =>
-          import('./features/ingesta/ingesta.component').then((m) => m.IngestaComponent),
+          API_CONFIG.datosReales
+            ? import('./features/ingesta-api/ingesta-api.component').then((m) => m.IngestaApiComponent)
+            : import('./features/ingesta/ingesta.component').then((m) => m.IngestaComponent),
       },
 
       // ----- Fase 2 -----
@@ -72,8 +85,11 @@ export const routes: Routes = [
       {
         path: 'usuarios',
         canActivate: [roleGuard(SOLO_ADMIN)],
+        // Con el servidor: cuentas (/users) y pesos del ISS (/config). Con la demostración: las cuentas simuladas.
         loadComponent: () =>
-          import('./features/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
+          API_CONFIG.useMock
+            ? import('./features/usuarios/usuarios.component').then((m) => m.UsuariosComponent)
+            : import('./features/usuarios-api/usuarios-api.component').then((m) => m.UsuariosApiComponent),
       },
 
       // Cualquier otra dirección: página 404 dentro del layout (el menú sigue disponible).

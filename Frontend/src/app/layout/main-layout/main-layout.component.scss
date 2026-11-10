@@ -99,6 +99,19 @@ $punto-movil: 860px;
 
 .menu-etiqueta { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 
+/* Marca de las pantallas que todavía usan datos de demostración */
+.menu-demo {
+  padding: 1px 7px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #5a3b00;
+  background: #ffd98a;
+  border-radius: 999px;
+}
+.menu-item.activo .menu-demo { background: #ffe9b8; }
+
 /* ---------- Área principal ---------- */
 .principal {
   flex: 1;
@@ -128,13 +141,14 @@ $punto-movil: 860px;
 
 .migas {
   flex: 1;
+  min-width: 0; // deja que se encoja en vez de empujar el borde derecho (el nombre de la pantalla puede ser largo)
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: var(--gris);
   font-size: 0.9rem;
 
-  strong { color: var(--texto); font-weight: 600; }
+  strong { color: var(--texto); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 .migas-sep { color: var(--borde); font-size: 1.1rem; }
 
@@ -196,6 +210,16 @@ $punto-movil: 860px;
   padding: 1.5rem;
 }
 
+.aviso-demo {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.86rem;
+  color: #5a3b00;
+  background: #fff4dc;
+  border: 1px solid #f0cf8a;
+  border-radius: 8px;
+}
+
 .backdrop { display: none; }
 
 /* ---------- Escritorio: menú colapsado a íconos ---------- */
@@ -204,6 +228,7 @@ $punto-movil: 860px;
     .sidebar { width: $ancho-colapsado; }
     .sidebar-header { padding: 0; flex-direction: column; justify-content: center; gap: 0; }
     .marca-texto,
+    .menu-demo,
     .menu-etiqueta { display: none; }
     .marca { display: none; }
     .btn-colapsar app-icon { transform: rotate(180deg); }
@@ -249,4 +274,6 @@ $punto-movil: 860px;
 @media (max-width: 600px) {
   .usuario-datos,
   .btn-salir span { display: none; }
+  /* en celular solo el nombre de la pantalla actual: la sección y el separador no caben */
+  .migas > span { display: none; }
 }
