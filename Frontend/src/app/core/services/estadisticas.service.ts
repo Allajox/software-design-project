@@ -1,8 +1,10 @@
 import { httpResource } from '@angular/common/http';
 import { Injectable, computed, inject, linkedSignal } from '@angular/core';
 import { API_CONFIG } from '../config/api.config';
+import { aParametrosPanel } from '../models/filtros-panel';
 import { Kpis, Siniestro } from '../models/siniestro.models';
 import { DatosVialesService } from './datos-viales.service';
+import { FiltrosPanelService } from './filtros-panel.service';
 import { FiltrosService } from './filtros.service';
 import { aplicarFiltros } from './filtrado';
 
@@ -38,7 +40,7 @@ export interface PerfilDemografico {
   femenino: number[];
 }
 
-/** Lo que devuelve GET /api/dashboard (DashboardCharts en el backend) */
+/** Lo que devuelve GET /api/dashboard (DashboardPanel en el backend) */
 interface RespuestaDashboard {
   /** tpr llega null cuando la fuente no trae tiempos de respuesta */
   kpis: Omit<Kpis, 'tpr'> & { tpr: number | null };
@@ -73,20 +75,12 @@ const SIN_DATOS: RespuestaDashboard = {
 export class EstadisticasService {
   private readonly datos = inject(DatosVialesService);
   private readonly filtrosSrv = inject(FiltrosService);
+  private readonly panelSrv = inject(FiltrosPanelService);
+  /** Filtros de selección múltiple: solo para `filtrados` (las pantallas de demostración que aún leen de memoria) */
   private readonly f = this.filtrosSrv.filtros;
 
-  /** Parámetros de la URL: solo los filtros con alguna selección */
-  readonly parametros = computed(() => {
-    const params: Record<string, string | string[]> = {};
-    for (const [clave, valor] of Object.entries(this.f())) {
-      if (Array.isArray(valor)) {
-        if (valor.length) params[clave] = valor.map(String);
-      } else if (valor) {
-        params[clave] = valor;
-      }
-    }
-    return params;
-  });
+  /** Parámetros de la URL: los filtros del panel de indicadores con una opción elegida («Todos» no se envía) */
+  readonly parametros = computed(() => aParametrosPanel(this.panelSrv.filtros()));
 
   private readonly recurso = httpResource<RespuestaDashboard>(() => ({
     url: `${API_CONFIG.baseUrl}/dashboard`,

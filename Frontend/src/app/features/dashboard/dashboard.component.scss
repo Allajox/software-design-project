@@ -1,27 +1,117 @@
 :host { display: block; }
 
-.pagina .subtitulo { margin-bottom: 1rem; }
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.4rem;
 
-app-panel-filtros { margin-bottom: 1rem; }
+  h1 { margin: 0 0 0.25rem; }
+  .subtitulo { margin: 0; }
+}
 
-/* 1 columna en celular, 2 en tableta, 3 en pantalla normal y 6 en pantalla muy ancha */
-.kpis {
+.acciones { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-start; }
+
+/* Botones con contorno azul, como en Figma */
+.boton {
+  padding: 9px 16px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--azul);
+  background: #fff;
+  border: 1px solid var(--azul-claro);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.boton:hover:not(:disabled) { background: #e8f0fc; }
+.boton:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
+.boton:disabled { color: var(--gris); border-color: var(--borde); cursor: default; }
+
+.exportar { position: relative; }
+.menu {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  min-width: 100%;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(31, 41, 51, 0.16);
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font: inherit;
+    font-size: 0.92rem;
+    text-align: left;
+    color: var(--texto);
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover { background: #e8f0fc; }
+  button:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: -2px; }
+}
+
+app-panel-selectores { margin-bottom: 1.2rem; }
+
+/* Pestañas «Resumen» y «Perfil de víctimas y riesgo» */
+.pestanas { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.pestanas button {
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--azul);
+  background: #fff;
+  border: 1px solid var(--azul-claro);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pestanas button[aria-selected='true'] { font-weight: 600; background: #e8f0fc; border-width: 2px; padding: 7px 15px; }
+.pestanas button:hover { background: #e8f0fc; }
+.pestanas button:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
+
+.alcance {
+  margin: 0 0 1rem;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--texto);
+  background: #fff7e6;
+  border: 1px solid #f0d49a;
+  border-radius: 8px;
+}
+
+/* 4 indicadores: 1 columna en celular, 2 en tableta y 4 en pantalla normal */
+.indicadores {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.85rem;
-  margin-bottom: 1rem;
+  column-gap: 1.5rem;
+  row-gap: 0;
+  margin: 0.4rem 0 1.4rem;
 }
-@media (min-width: 480px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1000px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1700px) { .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (min-width: 560px) { .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .indicadores { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 .ayuda { margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--gris); }
+.personas { margin: 0.2rem 0 0.6rem; font-size: 0.95rem; color: var(--texto); }
 
 .graficos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
   gap: 1rem;
 }
+
+.adversas { margin-top: 1.6rem; }
+/* separación bajo cada indicador cuando se apilan (la cuadrícula no pone espacio entre filas) */
+.indicadores app-indicador { padding-bottom: 1.1rem; }
 
 .vacio {
   padding: 2.5rem 1rem;
