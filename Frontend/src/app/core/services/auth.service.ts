@@ -38,9 +38,27 @@ export class AuthService {
     return peticion$.pipe(tap((respuesta) => this.guardarSesion(respuesta)));
   }
 
-  logout(): void {
+  /**
+   * Cierra la sesión en este navegador y, con el servidor real, también allá (POST /auth/logout invalida el token: si
+   * alguien lo hubiera copiado, deja de servir). Ese aviso no es esencial: si falla, igual se sale. Cuando el cierre lo
+   * provoca el propio servidor (401, el token ya no vale) no hay nada que avisarle: `avisarAlServidor = false`.
+   */
+  logout(avisarAlServidor = true): void {
+    if (avisarAlServidor && !API_CONFIG.useMock && this._sesion()) {
+      // se suscribe ANTES de borrar la sesión: el interceptor toma el token en ese momento
+      this.http.post<void>(`${API_CONFIG.baseUrl}/auth/logout`, null).subscribe({ error: () => undefined });
+    }
     localStorage.removeItem(STORAGE_KEY);
     this._sesion.set(null);
+  }
+
+  /**
+   * Con el servidor real, si la persona edita su propia cuenta (nombre o correo) la sesión guardada debe reflejarlo.
+   * No cambia el token ni el rol que el servidor reconoce: solo lo que se muestra.
+   */
+  actualizarIdentidad(usuario: Usuario): void {
+    const sesion = this._sesion();
+    if (sesion && sesion.usuario.id === usuario.id) this.guardarSesion({ ...sesion, usuario });
   }
 
   tieneRol(rolesPermitidos: RolUsuario[]): boolean {

@@ -1,0 +1,38 @@
+<section class="panel" aria-label="Filtros del panel de indicadores">
+  <div class="selectores">
+    @for (s of selectores(); track s.clave) {
+      <label class="campo">
+        <span class="etiqueta">{{ s.etiqueta }}</span>
+        <select
+          [disabled]="s.deshabilitado"
+          [attr.title]="s.pista"
+          [attr.data-clave]="s.clave"
+          (change)="cambiar(s.clave, $event)"
+        >
+          <option value="" [selected]="!f()[s.clave]">{{ s.todos }}</option>
+          @for (o of s.opciones; track o.valor) {
+            <option [value]="o.valor" [selected]="o.valor === f()[s.clave]">{{ o.texto }}</option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+
+  <div class="pie">
+    <p class="resumen" aria-live="polite">
+      {{ resumen() }}
+      @if (srv.activos() > 0) {
+        · {{ srv.activos() }} {{ srv.activos() === 1 ? 'filtro activo' : 'filtros activos' }}
+      }
+    </p>
+    @if (errorOpciones()) {
+      <p class="aviso" role="alert">
+        No se pudieron cargar las opciones de cantón, distrito, ruta, año y vehículo.
+        <button type="button" (click)="reintentar()">Reintentar</button>
+      </p>
+    }
+    <button type="button" class="limpiar" [disabled]="srv.activos() === 0" (click)="srv.limpiar()">
+      Limpiar filtros
+    </button>
+  </div>
+</section>

@@ -56,9 +56,10 @@ services:
       SIVCR_TS_DATA: ts_sivcr_data
       SIVCR_TS_INDEX: ts_sivcr_index
       SIVCR_TS_ADMIN: ts_sivcr_admin
-      #"dev" activa DevSecurityConfig: acepta los tokens falsos del login simulado de Angular (mock-jwt-N).
+      #"dev" activa DevUserSeeder: crea las cuentas de demostracion (admin@sivcr.go.cr / Admin123, analista@sivcr.go.cr /
+      #Analista123, consultor@sivcr.go.cr / Consulta123) para poder iniciar sesion en una base nueva.
       #SOLO PARA DESARROLLO: en cualquier entorno accesible desde fuera hay que definir otro perfil
-      #(SPRING_PROFILES_ACTIVE=prod) y usar la autenticacion real.
+      #(SPRING_PROFILES_ACTIVE=prod), crear el primer administrador a mano en la base y el resto desde Usuarios y Configuracion.
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     networks:
       - sivcr_network

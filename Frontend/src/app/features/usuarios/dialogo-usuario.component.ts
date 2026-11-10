@@ -2,12 +2,14 @@ import { Component, computed, effect, inject, input, output, signal, untracked }
 import { TODOS_LOS_ROLES } from '../../core/config/roles.config';
 import { ROL_DESCRIPCION, ROL_ETIQUETA, RolUsuario } from '../../core/models/auth.models';
 import { AvisosService } from '../../core/services/avisos.service';
-import { UsuariosService } from '../../core/services/usuarios.service';
+import { ResultadoGuardado, UsuariosService } from '../../core/services/usuarios.service';
 import { enteroAleatorio } from '../../core/usuarios/credenciales';
 import {
   LARGO_MAX_CLAVE, LARGO_MAX_CORREO, LARGO_MAX_NOMBRE, generarContrasena, motivoNoCambiarRol, requisitosContrasena,
 } from '../../core/usuarios/usuarios';
-import { CampoFormularioUsuario, CuentaPublica, ErroresFormularioUsuario } from '../../core/usuarios/usuarios.models';
+import {
+  CampoFormularioUsuario, CuentaPublica, DatosFormularioUsuario, ErroresFormularioUsuario,
+} from '../../core/usuarios/usuarios.models';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { ModalComponent } from '../../shared/ui/modal.component';
 
@@ -15,6 +17,12 @@ export interface CuentaGuardada {
   cuenta: CuentaPublica;
   creada: boolean;
 }
+
+/**
+ * Quién guarda la cuenta. Sin él, el diálogo usa las cuentas de demostración del navegador (UsuariosService); con el
+ * servidor real, la pantalla pasa uno que llama a la API (`idEditando` indefinido = cuenta nueva).
+ */
+export type GuardadorCuenta = (datos: DatosFormularioUsuario, idEditando: number | undefined) => Promise<ResultadoGuardado>;
 
 let contador = 0;
 
@@ -177,6 +185,10 @@ export class DialogoUsuarioComponent {
   readonly cuenta = input<CuentaPublica | null>(null);
   /** Quien está usando la pantalla (para las reglas «nadie cambia su propio rol») */
   readonly idActual = input<number | undefined>(undefined);
+  /** Las cuentas que existen (para la regla del último administrador); sin ellas se usan las de demostración */
+  readonly cuentas = input<readonly CuentaPublica[] | null>(null);
+  /** Quién guarda; sin él se usa la demostración (ver GuardadorCuenta) */
+  readonly guardador = input<GuardadorCuenta | null>(null);
 
   readonly guardado = output<CuentaGuardada>();
   readonly cerrar = output<void>();
@@ -205,7 +217,7 @@ export class DialogoUsuarioComponent {
   protected readonly motivoRol = computed(() => {
     const c = this.cuenta();
     if (!c || c.rol !== 'ADMIN') return null;
-    return motivoNoCambiarRol(c.id, 'ANALISTA_TRANSITO', this.servicio.cuentas(), this.idActual());
+    return motivoNoCambiarRol(c.id, 'ANALISTA_TRANSITO', this.cuentas() ?? this.servicio.cuentas(), this.idActual());
   });
   protected readonly rolBloqueado = computed(() => this.motivoRol() !== null);
 
@@ -261,9 +273,12 @@ export class DialogoUsuarioComponent {
     const datos = { nombre: this.nombre(), correo: this.correo(), rol: this.rol(), contrasena: this.contrasena() };
     const cuenta = this.cuenta();
     this.guardando.set(true);
-    const r = cuenta
-      ? await this.servicio.actualizar(cuenta.id, datos, this.idActual())
-      : await this.servicio.crear(datos);
+    const guardar = this.guardador();
+    const r = guardar
+      ? await guardar(datos, cuenta?.id)
+      : cuenta
+        ? await this.servicio.actualizar(cuenta.id, datos, this.idActual())
+        : await this.servicio.crear(datos);
     this.guardando.set(false);
 
     if (!r.ok) {

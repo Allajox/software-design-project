@@ -1,760 +1,307 @@
 package model.managers;
 
-import java.text.Normalizer;
+import enums.Day;
+import enums.Gender;
+import enums.TimeSlot;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.UnaryOperator;
-
+import model.ConfigRepository;
+import model.Etiquetas;
+import model.FilterCriteria;
+import model.PerfilVictimas;
+import model.StatsRepository;
+import model.StatsRepository.Alcance;
+import model.StatsRepository.Celda;
+import model.StatsRepository.Conteo;
+import model.StatsRepository.Lesiones;
+import model.StatsRepository.Resumen;
+import model.SystemConfig;
+import model.VictimRepository;
 import model.dto.DashboardCharts;
-import model.dto.DashboardCharts.ItemConteo;
-import model.dto.DashboardCharts.ItemRuta;
-import model.dto.DashboardCharts.ItemVehiculo;
-import model.dto.DashboardCharts.Kpis;
-import model.dto.DashboardCharts.MatrizDiaFranja;
-import model.dto.DashboardCharts.PerfilDemografico;
-import model.dto.DashboardFilters;
+import model.dto.FatalityByVehicle;
+import model.dto.HeatmapData;
+import model.dto.KPIResult;
+import model.dto.KPIValue;
+import model.dto.ParetoPoint;
 import model.dto.PublicSummary;
+import model.dto.VictimsByGenderAge;
+import model.dto.ZoneShare;
+import model.interfaces.IStatsManager;
 
-import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Service;
+/**
+ * KPI y gráficos del dashboard (HU 9, 11 a 19). Aquí viven las fórmulas de la especificación (sección 3.4); las consultas
+ * viven en app.persistence detrás de StatsRepository y VictimRepository. No depende de Spring ni de SQL.
+ *
+ * Reglas que se cumplen en todo el manager:
+ * - Solo registros VALIDO y de la fuente de KPI (lo garantiza el repositorio). Un indicador sin datos suficientes
+ *   devuelve valor null y en el ámbito dice por qué, nunca un 0 que parezca real.
+ * - Edad y género son datos de la persona y COSEVI no permite enlazar una persona con su siniestro: los KPI y gráficos
+ *   de siniestros los ignoran y los gráficos de personas ignoran ruta, franja, vehículo, severidad, clima y calzada.
+ *   Lo ignorado se informa (en el ámbito del KPI o en DashboardCharts.filtrosNoAplicados), no se aplica en silencio.
+ */
+public class StatsManager implements IStatsManager {
 
-@Service
-public class StatsManager {
+    /** Rutas que se muestran en el Pareto y en el TSV por ruta. */
+    static final int RUTAS_EN_PARETO = 15;
+    static final int RUTAS_EN_TSV = 10;
 
-    private static final List<String> PROVINCIAS = List.of(
-            "San José", "Alajuela", "Cartago", "Heredia",
-            "Guanacaste", "Puntarenas", "Limón"
-    );
+    private static final String SEPARADOR = " · ";
+    private static final String[] MESES = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto",
+        "Septiembre", "Octubre", "Noviembre", "Diciembre"};
 
-    private static final List<String> DIAS = List.of(
-            "Lunes", "Martes", "Miércoles", "Jueves",
-            "Viernes", "Sábado", "Domingo"
-    );
+    private final StatsRepository estadisticas;
+    private final VictimRepository victimas;
+    private final ConfigRepository configuracion;
 
-    private static final List<String> FRANJAS = List.of(
-            "Madrugada", "Mañana", "Tarde", "Noche"
-    );
+    public StatsManager(StatsRepository estadisticas, VictimRepository victimas, ConfigRepository configuracion) {
+        this.estadisticas = estadisticas;
+        this.victimas = victimas;
+        this.configuracion = configuracion;
+    }
 
-    /*
-     * Categorías reales almacenadas en sinister.severidad.
-     * No representan cantidades individuales de personas fallecidas o heridas.
+    // ---------------------------------------------------------------------------------------------------- KPI
+
+    @Override
+    public KPIResult getKPIs(FilterCriteria filters) {
+        filters.validar();
+        String ambito = describeScope(filters);
+        SystemConfig config = configuracion.leer();
+        Resumen resumen = estadisticas.resumen(filters, config.climaAdverso(), config.calzadaAdversa());
+
+        // TSV (3.4.1): siniestros de la zona entre el total nacional, por 100. El total nacional respeta el tiempo y
+        // el resto de filtros pero no la geografía; así una provincia o una ruta se compara con el país.
+        long nacional = estadisticas.contar(filters, Alcance.SIN_GEOGRAFIA);
+        KPIValue tsvGlobal = nacional == 0
+            ? sinDatos("%", ambito, "no hay siniestros registrados en el ámbito nacional")
+            : new KPIValue(porcentaje(resumen.total(), nacional), "%", ambito);
+        List<ZoneShare> porProvincia = new ArrayList<>();
+        for (Conteo c : estadisticas.porProvincia(filters)) {
+            porProvincia.add(new ZoneShare(Etiquetas.de(c.clave()), c.incidentes(), porcentaje(c.incidentes(), nacional)));
+        }
+        List<ZoneShare> porRuta = new ArrayList<>();
+        for (Conteo c : primeros(estadisticas.porRuta(filters, Alcance.SIN_GEOGRAFIA), RUTAS_EN_TSV)) {
+            porRuta.add(new ZoneShare(c.clave(), c.incidentes(), porcentaje(c.incidentes(), nacional)));
+        }
+
+        return new KPIResult(resumen.total(),
+            new KPIResult.Tsv(tsvGlobal, nacional, porProvincia, porRuta),
+            iss(filters, ambito, config),
+            tpr(resumen, ambito),
+            adversas(resumen, ambito));
+    }
+
+    /**
+     * ISS (3.4.2) = (W1·fallecidos + W2·graves + W3·leves) / siniestros. Los siniestros de COSEVI solo distinguen
+     * "con muertos o graves" de "solo heridos leves"; fallecidos, graves y leves por separado solo existen en el archivo
+     * de personas. Por eso el numerador sale de las personas y el denominador de los siniestros, ambos con los filtros que
+     * comparten (ubicación y tiempo), para que sean la misma población.
      */
-    private static final List<String> SEVERIDADES = List.of(
-            "Fallecido",
-            "Con muertos o graves",
-            "Solo heridos leves"
-    );
-
-    private static final List<String> EDADES_PIRAMIDE = List.of(
-            ">60", "41-60", "26-40", "18-25"
-    );
-
-    private static final Set<String> UBICACION = Set.of(
-            "provincia", "canton", "distrito", "ruta"
-    );
-
-    
-
-    private static final String EDAD_RANGO =
-            "CASE "
-            + "WHEN v.edad BETWEEN 18 AND 25 THEN '18-25' "
-            + "WHEN v.edad BETWEEN 26 AND 40 THEN '26-40' "
-            + "WHEN v.edad BETWEEN 41 AND 60 THEN '41-60' "
-            + "WHEN v.edad > 60 THEN '>60' "
-            + "END";
-
-    private record Clausula(String sql, MapSqlParameterSource p) {}
-
-    private record Fila(String k, long n) {}
-
-    private final NamedParameterJdbcTemplate jdbc;
-
-    public StatsManager(NamedParameterJdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
-
-    // ================================================================
-    // Dashboard
-    // ================================================================
-
-    public DashboardCharts dashboard(DashboardFilters f) {
-
-        Clausula todas = donde(f, Set.of());
-        Clausula nacional = donde(f, UBICACION);
-
-        Clausula filtrosVictimas = dondeVictimas(f, false);
-
-        return new DashboardCharts(
-                kpis(todas, nacional, filtrosVictimas),
-                provincias(nacional),
-                vehiculos(dondeVictimas(f, true)),   // ignora su propio filtro
-                severidades(donde(f, Set.of("severidades"))),
-                rutas(donde(f, Set.of("ruta"))),
-                matriz(todas),
-                perfil(filtrosVictimas)
-        );
-    }
-
-    // ================================================================
-    // KPIs
-    // ================================================================
-
-    private Kpis kpis(
-            Clausula todas,
-            Clausula nacional,
-            Clausula filtrosVictimas) {
-
-        long total = contar(new Clausula(
-                "s.calidad = 'VALIDO'",
-                new MapSqlParameterSource()
-        ));
-
-        long nac = contar(nacional);
-
-        Map<String, Object> pesos = jdbc.getJdbcTemplate().queryForMap(
-                "SELECT w_fallecido, w_herido_grave, w_herido_leve "
-                + "FROM system_config WHERE id = 1"
-        );
-
-        double w1 = num(pesos.get("w_fallecido"));
-        double w2 = num(pesos.get("w_herido_grave"));
-        double w3 = num(pesos.get("w_herido_leve"));
-
-        Map<String, Object> r = jdbc.queryForMap(
-                "SELECT count(*) AS n, "
-                + "count(*) FILTER (WHERE s.severidad = 'FALLECIDO') AS fal, "
-                + "count(*) FILTER (WHERE s.severidad = 'CON_MUERTOS_O_GRAVES') AS gra, "
-                + "count(*) FILTER (WHERE s.severidad = 'SOLO_HERIDOS_LEVES') AS lev, "
-                + "count(*) FILTER ("
-                + "WHERE s.clima = ANY(c.clima_adverso) "
-                + "OR s.calzada = ANY(c.calzada_adversa)"
-                + ") AS adv, "
-                + "avg(s.tiempo_respuesta_min) AS tpr "
-                + "FROM sinister s "
-                + "CROSS JOIN system_config c "
-                + "WHERE c.id = 1 AND " + todas.sql(),
-                todas.p()
-        );
-
-        long n = lng(r.get("n"));
-        long fal = lng(r.get("fal"));
-        long gra = lng(r.get("gra"));
-        long lev = lng(r.get("lev"));
-        long adv = lng(r.get("adv"));
-
-        Double tpr = r.get("tpr") == null
-                ? null
-                : num(r.get("tpr"));
-
-        Map<String, Object> pv = jdbc.queryForMap(
-                "SELECT count(*) FILTER (WHERE v.tipo_lesion = 'MUERTE_EN_SITIO') AS fal, "
-                + "count(*) FILTER (WHERE v.tipo_lesion = 'HERIDO_GRAVE') AS gra, "
-                + "count(*) FILTER (WHERE v.tipo_lesion = 'HERIDO_LEVE') AS lev "
-                + "FROM victim v WHERE " + filtrosVictimas.sql(),
-                filtrosVictimas.p());
-        long pFal = lng(pv.get("fal")), pGra = lng(pv.get("gra")), pLev = lng(pv.get("lev"));
-        long victimas = pFal + pGra + pLev;   // personas afectadas (sin contar ilesos)
-
-        double iss = n == 0 ? 0 : (w1 * fal + w2 * gra + w3 * lev) / n;   // sigue usando la gravedad del siniestro
-
-        return new Kpis(n, total, pct(n, nac), iss, tpr, victimas, pFal, pGra, pLev, pct(adv, n));
-    }
-
-    // ================================================================
-    // Gráficos
-    // ================================================================
-
-    private List<ItemConteo> provincias(Clausula nacional) {
-
-        long base = contar(nacional);
-
-        Map<String, Long> conteo =
-                conteo("s.provincia", nacional, StatsManager::norm);
-
-        List<ItemConteo> lista = new ArrayList<>();
-
-        for (String provincia : PROVINCIAS) {
-            long n = conteo.getOrDefault(norm(provincia), 0L);
-
-            lista.add(new ItemConteo(
-                    provincia,
-                    n,
-                    pct(n, base)
-            ));
+    private KPIValue iss(FilterCriteria f, String ambito, SystemConfig config) {
+        Lesiones lesiones = estadisticas.lesiones(f);
+        long siniestros = estadisticas.contar(f, Alcance.COMUN_CON_PERSONAS);
+        List<String> ignorados = ignoradosPorIss(f);
+        String conNota = ignorados.isEmpty() ? ambito
+            : ambito + SEPARADOR + "No aplicados al ISS: " + nombresVisibles(ignorados);
+        if (lesiones.personas() == 0 || siniestros == 0) {
+            return sinDatos("índice", conNota, "no hay personas y siniestros registrados para el ámbito");
         }
-
-        lista.sort((a, b) -> Long.compare(b.valor(), a.valor()));
-
-        return lista;
+        double ponderado = config.wFallecido() * lesiones.fallecidos()
+            + config.wHeridoGrave() * lesiones.graves()
+            + config.wHeridoLeve() * lesiones.leves();
+        return new KPIValue(ponderado / siniestros, "índice", conNota);
     }
 
-    private List<ItemConteo> severidades(Clausula c) {
-
-        long base = contar(c);
-
-        Map<String, Long> conteo =
-                conteo("s.severidad", c, StatsManager::claveSeveridad);
-
-        List<ItemConteo> lista = new ArrayList<>();
-
-        for (String severidad : SEVERIDADES) {
-
-            long n = conteo.getOrDefault(
-                    claveSeveridad(severidad),
-                    0L
-            );
-
-            lista.add(new ItemConteo(
-                    severidad,
-                    n,
-                    pct(n, base)
-            ));
-        }
-
-        return lista;
-    }
-
-    private List<ItemVehiculo> vehiculos(Clausula c) {
-
-        String donde = c.sql() + " AND v.vehiculo IS NOT NULL AND v.vehiculo <> 'No aplica'";
-
-        Long base = jdbc.queryForObject(
-                "SELECT count(*) FROM victim v WHERE " + donde, c.p(), Long.class);
-        long total = base == null ? 0 : base;
-
-        return jdbc.query(
-                "SELECT v.vehiculo AS k, count(*) AS n, "
-                + "count(*) FILTER (WHERE v.tipo_lesion = 'MUERTE_EN_SITIO') AS fal "
-                + "FROM victim v WHERE " + donde
-                + " GROUP BY 1 ORDER BY 2 DESC LIMIT 8",
-                c.p(),
-                (rs, i) -> {
-                    long n = rs.getLong("n");
-                    return new ItemVehiculo(
-                            rs.getString("k"), n, pct(n, total), pct(rs.getLong("fal"), n));
-                });
-    }
-
-    private List<ItemRuta> rutas(Clausula c) {
-
-        long base = contar(c);
-
-        List<Fila> filas = jdbc.query(
-                "SELECT s.ruta, count(*) "
-                + "FROM sinister s "
-                + "WHERE " + c.sql()
-                + " AND s.ruta ~ '^[0-9]+$' "
-                + "GROUP BY 1 "
-                + "ORDER BY 2 DESC "
-                + "LIMIT 8",
-                c.p(),
-                (rs, i) -> new Fila(
-                        rs.getString(1),
-                        rs.getLong(2)
-                )
-        );
-
-        List<ItemRuta> lista = new ArrayList<>();
-
-        long acumulado = 0;
-
-        for (Fila fila : filas) {
-
-            acumulado += fila.n();
-
-            lista.add(new ItemRuta(
-                    "Ruta " + fila.k(),
-                    fila.n(),
-                    pct(fila.n(), base),
-                    pct(acumulado, base)
-            ));
-        }
-
-        return lista;
-    }
-
-    private MatrizDiaFranja matriz(Clausula c) {
-
-        long[][] m = new long[DIAS.size()][FRANJAS.size()];
-
-        jdbc.query(
-                "SELECT s.dia_semana, s.franja, count(*) "
-                + "FROM sinister s "
-                + "WHERE " + c.sql()
-                + " GROUP BY 1, 2",
-                c.p(),
-                (RowCallbackHandler) rs -> {
-
-                    int d = indice(DIAS, rs.getString(1));
-                    int fr = indice(FRANJAS, rs.getString(2));
-
-                    if (d >= 0 && fr >= 0) {
-                        m[d][fr] += rs.getLong(3);
-                    }
-                }
-        );
-
-        List<List<Long>> valores = new ArrayList<>();
-
-        long max = 0;
-
-        for (long[] fila : m) {
-
-            List<Long> l = new ArrayList<>();
-
-            for (long v : fila) {
-                l.add(v);
-                max = Math.max(max, v);
-            }
-
-            valores.add(l);
-        }
-
-        return new MatrizDiaFranja(
-                DIAS,
-                FRANJAS,
-                valores,
-                max
-        );
-    }
-
-    // ================================================================
-    // Víctimas y perfil demográfico
-    // ================================================================
-
-    /*
-     * Los registros de victim no tienen sinister_id.
-     *
-     * Por eso solo se aplican filtros que existen directamente en victim:
-     * provincia, cantón, distrito, año, mes, día, edad y género.
-     *
-     * No se aplican filtros de ruta, clima, calzada, franja, vehículo
-     * ni severidad del siniestro.
+    /**
+     * TPR (3.4.3) = suma de tiempos de respuesta entre siniestros. Se divide entre los siniestros que TIENEN tiempo y
+     * no entre todos: si solo algunos lo traen, dividir entre el total daría un promedio artificialmente bajo. Si todos
+     * lo traen, es idéntico a la fórmula. COSEVI no registra tiempos de respuesta: hoy sale sin datos.
      */
-    private Clausula dondeVictimas(DashboardFilters f, boolean ignorarVehiculo) {
-
-        List<String> condiciones = new ArrayList<>();
-
-        condiciones.add("v.calidad = 'VALIDO'");
-
-        MapSqlParameterSource p = new MapSqlParameterSource();
-
-        if (hay(f.provincia())) {
-            condiciones.add(sqlNorm("v.provincia") + " = :provincia");
-            p.addValue("provincia", norm(f.provincia()));
+    private static KPIValue tpr(Resumen r, String ambito) {
+        if (r.total() == 0) {
+            return sinDatos("min", ambito, "no hay siniestros en el ámbito");
         }
-
-        if (hay(f.canton())) {
-            condiciones.add(sqlNorm("v.canton") + " = :canton");
-            p.addValue("canton", norm(f.canton()));
+        if (r.conTiempoRespuesta() == 0) {
+            return sinDatos("min", ambito, "la fuente no registra tiempos de respuesta");
         }
-
-        if (hay(f.distrito())) {
-            condiciones.add(sqlNorm("v.distrito") + " = :distrito");
-            p.addValue("distrito", norm(f.distrito()));
-        }
-
-        if (!f.anios().isEmpty()) {
-            condiciones.add("v.anio IN (:anios)");
-            p.addValue("anios", f.anios());
-        }
-
-        if (!f.meses().isEmpty()) {
-            condiciones.add("v.mes IN (:meses)");
-            p.addValue("meses", f.meses());
-        }
-
-        if (!f.dias().isEmpty()) {
-            condiciones.add(sqlNorm("v.dia_semana") + " IN (:dias)");
-            p.addValue("dias", normalizar(f.dias()));
-        }
-
-        if (!f.edades().isEmpty()) {
-            condiciones.add(EDAD_RANGO + " IN (:edades)");
-            p.addValue("edades", f.edades());
-        }
-
-        if (!f.generos().isEmpty()) {
-            condiciones.add("upper(v.genero) IN (:generos)");
-            p.addValue("generos", normalizar(f.generos()));
-        }
-
-        if (!ignorarVehiculo && !f.vehiculos().isEmpty()) {
-            condiciones.add("v.vehiculo IN (:vehiculos)");
-            p.addValue("vehiculos", f.vehiculos());
-        }
-
-        return new Clausula(
-                String.join(" AND ", condiciones),
-                p
-        );
+        String nota = r.conTiempoRespuesta() == r.total() ? ambito
+            : ambito + SEPARADOR + "Promedio de los " + r.conTiempoRespuesta() + " siniestros con tiempo registrado"
+                + " (de " + r.total() + ")";
+        return new KPIValue(r.sumaTiempoRespuesta() / r.conTiempoRespuesta(), "min", nota);
     }
 
-    private PerfilDemografico perfil(Clausula c) {
+    /** IC (3.4.5): siniestros con clima o calzada adversos entre el total, por 100. */
+    private static KPIValue adversas(Resumen r, String ambito) {
+        return r.total() == 0
+            ? sinDatos("%", ambito, "no hay siniestros en el ámbito")
+            : new KPIValue(porcentaje(r.adversos(), r.total()), "%", ambito);
+    }
 
-        String sql =
-                "SELECT "
-                + EDAD_RANGO + " AS edad_rango, "
-                + "upper(v.genero) AS genero, "
-                + "count(*) AS cantidad "
-                + "FROM victim v "
-                + "WHERE " + c.sql()
-                + " AND " + EDAD_RANGO + " IS NOT NULL "
-                + "GROUP BY 1, 2";
+    // ------------------------------------------------------------------------------------------------ gráficos
 
-        long[] masc = new long[EDADES_PIRAMIDE.size()];
-        long[] fem = new long[EDADES_PIRAMIDE.size()];
+    @Override
+    public DashboardCharts getCharts(FilterCriteria filters) {
+        filters.validar();
+        PerfilVictimas perfil = victimas.perfil(filters);
 
-        jdbc.query(
-                sql,
-                c.p(),
-                (RowCallbackHandler) rs -> {
-
-                    int i = EDADES_PIRAMIDE.indexOf(
-                            rs.getString("edad_rango")
-                    );
-
-                    if (i < 0) {
-                        return;
-                    }
-
-                    String genero = norm(rs.getString("genero"));
-                    long cantidad = rs.getLong("cantidad");
-
-                    if (genero.equals("MASCULINO")) {
-                        masc[i] += cantidad;
-                    } else if (genero.equals("FEMENINO")) {
-                        fem[i] += cantidad;
-                    }
-                }
-        );
-
+        List<String> edades = new ArrayList<>();
         List<Long> masculino = new ArrayList<>();
         List<Long> femenino = new ArrayList<>();
+        for (PerfilVictimas.TramoEdad tramo : perfil.porEdadYGenero()) {
+            edades.add(tramo.rango());
+            masculino.add(tramo.masculino());
+            femenino.add(tramo.femenino());
+        }
+        VictimsByGenderAge victims = new VictimsByGenderAge(edades, List.of(
+            new VictimsByGenderAge.Series(Etiquetas.de(Gender.MASCULINO), masculino),
+            new VictimsByGenderAge.Series(Etiquetas.de(Gender.FEMENINO), femenino)));
 
-        for (int i = 0; i < masc.length; i++) {
-            masculino.add(masc[i]);
-            femenino.add(fem[i]);
+        // TF_v (3.4.4): fallecidos entre personas de cada vehículo, por 100. Con personas, no con siniestros: la tasa es
+        // por persona (no "siniestros con al menos un fallecido"), porque el archivo de personas no dice a qué siniestro
+        // pertenecen. Los vehículos son los de COSEVI, sin agrupar.
+        List<FatalityByVehicle> fatalidad = new ArrayList<>();
+        for (PerfilVictimas.FatalidadPorVehiculo g : perfil.fatalidadPorVehiculo()) {
+            fatalidad.add(new FatalityByVehicle(g.vehiculo(), g.personas(), g.fallecidos(), g.tasa() * 100));
         }
 
-        return new PerfilDemografico(
-                EDADES_PIRAMIDE,
-                masculino,
-                femenino
-        );
+        LinkedHashSet<String> noAplicados = new LinkedHashSet<>(ignoradosPorSiniestros(filters));
+        noAplicados.addAll(perfil.filtrosNoAplicados());
+        return new DashboardCharts(getHeatmap(filters), getPareto(filters), victims, fatalidad,
+            new ArrayList<>(noAplicados));
     }
 
-    // ================================================================
-    // Resumen público
-    // ================================================================
-
-    public PublicSummary resumenPublico() {
-
-        Clausula c = donde(
-                DashboardFilters.vacio(),
-                Set.of()
-        );
-
-        long base = contar(c);
-
-        List<ItemConteo> porAnio = jdbc.query(
-                "SELECT s.anio, count(*) "
-                + "FROM sinister s "
-                + "WHERE " + c.sql()
-                + " AND s.anio IS NOT NULL "
-                + "GROUP BY 1 "
-                + "ORDER BY 1",
-                c.p(),
-                (rs, i) -> new ItemConteo(
-                        String.valueOf(rs.getInt(1)),
-                        rs.getLong(2),
-                        pct(rs.getLong(2), base)
-                )
-        );
-
-        Map<String, Long> fr = conteo(
-                "s.franja",
-                c,
-                StatsManager::norm
-        );
-
-        List<ItemConteo> porFranja = new ArrayList<>();
-
-        for (String franja : FRANJAS) {
-
-            long n = fr.getOrDefault(norm(franja), 0L);
-
-            porFranja.add(new ItemConteo(
-                    franja,
-                    n,
-                    pct(n, base)
-            ));
+    @Override
+    public HeatmapData getHeatmap(FilterCriteria filters) {
+        filters.validar();
+        List<String> dias = new ArrayList<>();
+        for (Day d : Day.values()) {
+            dias.add(Etiquetas.de(d));
         }
-
-        return new PublicSummary(
-                base,
-                porAnio,
-                provincias(c),
-                severidades(c),
-                porFranja
-        );
-    }
-
-    // ================================================================
-    // Filtros de siniestros
-    // ================================================================
-
-    /*
-     * Esta cláusula trabaja exclusivamente con sinister.
-     * Los filtros demográficos no se aplican aquí porque no existe
-     * una relación entre las filas de victim y las de sinister.
-     */
-    private Clausula donde(
-            DashboardFilters f,
-            Set<String> ignorar) {
-
-        List<String> condiciones = new ArrayList<>();
-
-        condiciones.add("s.calidad = 'VALIDO'");
-
-        MapSqlParameterSource p = new MapSqlParameterSource();
-
-        if (!ignorar.contains("provincia") && hay(f.provincia())) {
-            condiciones.add(sqlNorm("s.provincia") + " = :provincia");
-            p.addValue("provincia", norm(f.provincia()));
+        List<String> franjas = new ArrayList<>();
+        for (TimeSlot t : TimeSlot.values()) {
+            franjas.add(Etiquetas.de(t));
         }
-
-        if (!ignorar.contains("canton") && hay(f.canton())) {
-            condiciones.add(sqlNorm("s.canton") + " = :canton");
-            p.addValue("canton", norm(f.canton()));
-        }
-
-        if (!ignorar.contains("distrito") && hay(f.distrito())) {
-            condiciones.add(sqlNorm("s.distrito") + " = :distrito");
-            p.addValue("distrito", norm(f.distrito()));
-        }
-
-        if (!ignorar.contains("ruta") && hay(f.ruta())) {
-            condiciones.add("s.ruta = :ruta");
-
-            p.addValue(
-                    "ruta",
-                    norm(f.ruta()).replaceFirst("^RUTA_", "")
-            );
-        }
-
-        lista(condiciones, p, ignorar, "anios", "s.anio", f.anios());
-        lista(condiciones, p, ignorar, "meses", "s.mes", f.meses());
-
-        lista(
-                condiciones, p, ignorar,
-                "dias", "s.dia_semana", normalizar(f.dias())
-        );
-
-        lista(
-                condiciones, p, ignorar,
-                "franjas", "s.franja", normalizar(f.franjas())
-        );
-
-        lista(
-                condiciones, p, ignorar,
-                "climas", "s.clima", normalizar(f.climas())
-        );
-
-        lista(
-                condiciones, p, ignorar,
-                "calzadas", "s.calzada", normalizar(f.calzadas())
-        );
-
-        if (!ignorar.contains("severidades")
-                && !f.severidades().isEmpty()) {
-
-            List<String> or = new ArrayList<>();
-
-            int i = 0;
-
-            for (String severidad : f.severidades()) {
-
-                String valor = claveSeveridad(severidad);
-
-                String columna = "s.severidad = :sev" + i;
-
-                or.add(columna);
-
-                p.addValue("sev" + i, valor);
-
-                i++;
-            }
-
-            condiciones.add("(" + String.join(" OR ", or) + ")");
-        }
-
-        return new Clausula(
-                String.join(" AND ", condiciones),
-                p
-        );
-    }
-
-    private static <T> void lista(
-            List<String> condiciones,
-            MapSqlParameterSource p,
-            Set<String> ignorar,
-            String clave,
-            String columna,
-            List<T> valores) {
-
-        if (ignorar.contains(clave) || valores.isEmpty()) {
-            return;
-        }
-
-        condiciones.add(columna + " IN (:" + clave + ")");
-
-        p.addValue(clave, valores);
-    }
-
-    // ================================================================
-    // Utilidades
-    // ================================================================
-
-    private long contar(Clausula c) {
-
-        return contar(
-                "SELECT count(*) FROM sinister s WHERE ",
-                c
-        );
-    }
-
-    private long contar(String prefijo, Clausula c) {
-
-        Long n = jdbc.queryForObject(
-                prefijo + c.sql(),
-                c.p(),
-                Long.class
-        );
-
-        return n == null ? 0 : n;
-    }
-
-    private Map<String, Long> conteo(
-            String columna,
-            Clausula c,
-            UnaryOperator<String> clave) {
-
-        Map<String, Long> resultado = new HashMap<>();
-
-        jdbc.query(
-                "SELECT " + columna + ", count(*) "
-                + "FROM sinister s "
-                + "WHERE " + c.sql()
-                + " AND " + columna + " IS NOT NULL "
-                + "GROUP BY 1",
-                c.p(),
-                (RowCallbackHandler) rs -> resultado.merge(
-                        clave.apply(rs.getString(1)),
-                        rs.getLong(2),
-                        Long::sum
-                )
-        );
-
-        return resultado;
-    }
-
-    private static int indice(
-            List<String> catalogo,
-            String crudo) {
-
-        if (crudo == null) {
-            return -1;
-        }
-
-        String k = norm(crudo);
-
-        for (int i = 0; i < catalogo.size(); i++) {
-            if (norm(catalogo.get(i)).equals(k)) {
-                return i;
+        int[][] z = new int[dias.size()][franjas.size()];
+        for (Celda celda : estadisticas.mapaDeCalor(filters)) {
+            try {
+                z[Day.valueOf(celda.dia()).ordinal()][TimeSlot.valueOf(celda.franja()).ordinal()] =
+                    Math.toIntExact(celda.incidentes());
+            } catch (IllegalArgumentException e) {
+                // un día o una franja que el enum no conoce no tiene casilla: se omite en vez de tumbar el gráfico
             }
         }
-
-        return -1;
+        return new HeatmapData(dias, franjas, z);
     }
 
-    /*
-     * Traduce tanto las etiquetas del frontend como los valores reales
-     * almacenados en la columna sinister.severidad.
-     */
-    private static String claveSeveridad(String crudo) {
+    /** Pareto: las rutas con más siniestros; el acumulado es sobre TODAS las rutas numeradas, no solo las mostradas. */
+    @Override
+    public List<ParetoPoint> getPareto(FilterCriteria filters) {
+        filters.validar();
+        List<Conteo> rutas = estadisticas.porRuta(filters, Alcance.COMPLETO);
+        long total = rutas.stream().mapToLong(Conteo::incidentes).sum();
+        List<ParetoPoint> pareto = new ArrayList<>();
+        long acumulado = 0;
+        for (Conteo ruta : primeros(rutas, RUTAS_EN_PARETO)) {
+            acumulado += ruta.incidentes();
+            pareto.add(new ParetoPoint(ruta.clave(), ruta.incidentes(), porcentaje(acumulado, total)));
+        }
+        return pareto;
+    }
 
-        String k = norm(crudo);
+    // ---------------------------------------------------------------------------------------------- consultor
 
-        if (k.equals("FALLECIDO") || k.startsWith("FALLEC")) {
-            return "FALLECIDO";
+    /** Solo agregados nacionales de siniestros: sin datos de personas y sin los filtros del cliente. */
+    @Override
+    public PublicSummary getPublicSummary() {
+        FilterCriteria sinFiltros = FilterCriteria.vacio();
+        long total = estadisticas.contar(sinFiltros, Alcance.COMPLETO);
+        List<PublicSummary.ProvinceCount> provincias = new ArrayList<>();
+        for (Conteo c : estadisticas.porProvincia(sinFiltros)) {
+            provincias.add(new PublicSummary.ProvinceCount(Etiquetas.de(c.clave()), c.incidentes()));
+        }
+        List<PublicSummary.YearCount> anios = new ArrayList<>();
+        for (Conteo c : estadisticas.porAnio(sinFiltros)) {
+            anios.add(new PublicSummary.YearCount(Integer.parseInt(c.clave()), c.incidentes()));
         }
 
-        if (k.equals("GRAVE")
-                || k.equals("CON_MUERTOS_O_GRAVES")) {
-            return "CON_MUERTOS_O_GRAVES";
-        }
-
-        if (k.equals("LEVE")
-                || k.equals("SOLO_HERIDOS_LEVES")) {
-            return "SOLO_HERIDOS_LEVES";
-        }
-
-        return k;
+        // El TSV público es el de la provincia con más siniestros: con todo el país el TSV sería siempre 100 %
+        String principal = provincias.isEmpty() ? null : provincias.get(0).province();
+        KPIValue tsv = principal == null || total == 0
+            ? sinDatos("%", "Todo el país", "no hay siniestros registrados")
+            : new KPIValue(porcentaje(provincias.get(0).incidents(), total), "%",
+                "Provincia con más siniestros: " + principal);
+        return new PublicSummary(total, tsv, principal, provincias, anios);
     }
 
-    static String norm(String s) {
+    // ------------------------------------------------------------------------------------------------ ámbito
 
-        if (s == null) {
-            return "";
-        }
-
-        String t = Normalizer.normalize(
-                s.trim(),
-                Normalizer.Form.NFD
-        ).replaceAll("\\p{M}", "");
-
-        return t.toUpperCase(Locale.ROOT)
-                .replaceAll("\\s+", "_");
+    /** "Provincia: San José · Año: 2023 · Franja: Noche"; sin filtros, "Sin filtros (todos los registros válidos)". */
+    @Override
+    public String describeScope(FilterCriteria f) {
+        List<String> partes = new ArrayList<>();
+        if (f.provincia() != null) partes.add("Provincia: " + Etiquetas.de(f.provincia()));
+        if (f.canton() != null) partes.add("Cantón: " + f.canton());
+        if (f.distrito() != null) partes.add("Distrito: " + f.distrito());
+        if (f.ruta() != null) partes.add("Ruta: " + f.ruta());
+        if (f.anio() != null) partes.add("Año: " + f.anio());
+        if (f.mes() != null) partes.add("Mes: " + (f.mes() >= 1 && f.mes() <= 12 ? MESES[f.mes() - 1] : f.mes()));
+        if (f.diaSemana() != null) partes.add("Día: " + Etiquetas.de(f.diaSemana()));
+        if (f.franja() != null) partes.add("Franja: " + Etiquetas.de(f.franja()));
+        if (f.tipoVehiculo() != null) partes.add("Vehículo: " + Etiquetas.de(f.tipoVehiculo()));
+        if (f.severidad() != null) partes.add("Severidad: " + Etiquetas.de(f.severidad()));
+        if (f.clima() != null) partes.add("Clima: " + Etiquetas.de(f.clima()));
+        if (f.calzada() != null) partes.add("Calzada: " + Etiquetas.de(f.calzada()));
+        if (f.edadMin() != null && f.edadMax() != null) partes.add("Edad: " + f.edadMin() + "-" + f.edadMax());
+        else if (f.edadMin() != null) partes.add("Edad: desde " + f.edadMin());
+        else if (f.edadMax() != null) partes.add("Edad: hasta " + f.edadMax());
+        if (f.genero() != null) partes.add("Género: " + Etiquetas.de(f.genero()));
+        return partes.isEmpty() ? "Sin filtros (todos los registros válidos)" : String.join(SEPARADOR, partes);
     }
 
-    private static List<String> normalizar(List<String> valores) {
+    // ------------------------------------------------------------------------------------------------ apoyo
 
-        return valores.stream()
-                .map(StatsManager::norm)
-                .toList();
+    private static KPIValue sinDatos(String unidad, String ambito, String motivo) {
+        return new KPIValue(null, unidad, ambito + SEPARADOR + "Sin datos: " + motivo);
     }
 
-    /*
-     * Normalización SQL equivalente a norm():
-     * elimina tildes, convierte a mayúsculas y reemplaza espacios por "_".
-     */
-    private static String sqlNorm(String columna) {
-
-        return "upper(translate("
-                + columna
-                + ", 'áéíóúÁÉÍÓÚñÑ ', 'aeiouAEIOUnN_'))";
-    }
-
-    private static boolean hay(String s) {
-        return s != null && !s.isBlank();
-    }
-
-    private static double pct(long parte, long total) {
+    private static double porcentaje(long parte, long total) {
         return total == 0 ? 0 : 100.0 * parte / total;
     }
 
-    private static double num(Object o) {
-        return ((Number) o).doubleValue();
+    private static <T> List<T> primeros(List<T> lista, int cantidad) {
+        return lista.size() <= cantidad ? lista : lista.subList(0, cantidad);
     }
 
-    private static long lng(Object o) {
-        return ((Number) o).longValue();
+    /** Filtros del pedido que los datos de siniestros no tienen (son de la persona). */
+    private static List<String> ignoradosPorSiniestros(FilterCriteria f) {
+        List<String> nombres = new ArrayList<>();
+        if (f.edadMin() != null || f.edadMax() != null) nombres.add("edad");
+        if (f.genero() != null) nombres.add("genero");
+        return nombres;
+    }
+
+    /** Filtros del pedido que el ISS no aplica: todos los que no existen a la vez en siniestros y en personas. */
+    private static List<String> ignoradosPorIss(FilterCriteria f) {
+        List<String> nombres = new ArrayList<>();
+        if (f.ruta() != null) nombres.add("ruta");
+        if (f.franja() != null) nombres.add("franja");
+        if (f.tipoVehiculo() != null) nombres.add("tipoVehiculo");
+        if (f.severidad() != null) nombres.add("severidad");
+        if (f.clima() != null) nombres.add("clima");
+        if (f.calzada() != null) nombres.add("calzada");
+        nombres.addAll(ignoradosPorSiniestros(f));
+        return nombres;
+    }
+
+    private static String nombresVisibles(List<String> nombres) {
+        List<String> visibles = new ArrayList<>();
+        for (String nombre : nombres) {
+            visibles.add(switch (nombre) {
+                case "tipoVehiculo" -> "tipo de vehículo";
+                case "genero" -> "género";
+                default -> nombre;
+            });
+        }
+        return String.join(", ", visibles);
     }
 }

@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import model.ingestion.ParseOptions;
 import model.ingestion.TextNormalizer;
 
@@ -33,6 +34,36 @@ public record MappingProfile(String id, DataSource fuente, RecordKind tipo, Stri
                              List<RowFilter> filtros) {
 
     public enum Verificacion { VERIFICADO, POR_VERIFICAR }
+
+    /**
+     * Regla de una columna del archivo.
+     *
+     * @param encabezado     nombre de la columna tal como aparece en el perfil (para mensajes)
+     * @param clave          encabezado normalizado (TextNormalizer.clave), con el que se busca en la fila
+     * @param campo          campo destino (ver FieldCatalog)
+     * @param obligatorio    si falta o viene "desconocido", el registro queda INCOMPLETO
+     * @param valores        para CHOICE: texto normalizado -> valor canónico
+     * @param tokensVacios   textos normalizados que significan "sin dato" solo en esta columna (ej. "cantonal" en Kilómetro)
+     * @param min            límite inferior opcional (más estricto que el del catálogo)
+     * @param max            límite superior opcional
+     * @param maxLongitud    longitud máxima opcional para texto
+     * @param formato        patrón de fecha (DateTimeFormatter) para DATE
+     */
+    public record ColumnRule(String encabezado, String clave, String campo, FieldType tipo, boolean obligatorio,
+                             Map<String, String> valores, Set<String> tokensVacios,
+                             Double min, Double max, Integer maxLongitud, String formato) {
+    }
+
+    /**
+     * Filtro previo: solo las filas cuya columna cumple el patrón se procesan; las demás se cuentan como
+     * "omitidas" y no afectan los contadores de calidad (ej. INEC: causa de muerte CIE-10 V01-V89).
+     */
+    public record RowFilter(String encabezado, String clave, Pattern patron) {
+
+        public boolean acepta(String valor) {
+            return patron.matcher(TextNormalizer.limpiar(valor)).find();
+        }
+    }
 
     public ParseOptions opcionesDeLectura() {
         return new ParseOptions(charset, charsetRespaldo, delimitador, rutaRegistrosJson, hoja);

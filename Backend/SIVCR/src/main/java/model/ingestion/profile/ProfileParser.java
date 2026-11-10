@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import model.ingestion.TextNormalizer;
 import model.ingestion.profile.FieldCatalog.Spec;
+import model.ingestion.profile.MappingProfile.ColumnRule;
+import model.ingestion.profile.MappingProfile.RowFilter;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;

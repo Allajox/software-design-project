@@ -1,0 +1,251 @@
+<section class="pagina">
+  <h1>Explorador de registros</h1>
+  <p class="subtitulo">
+    Siniestros viales guardados en el servidor. Los filtros y el orden se aplican en la base de datos; solo se muestran
+    los registros con calidad válida.
+  </p>
+
+  <!-- ===== Filtros ===== -->
+  <section class="panel-api" aria-label="Filtros de la tabla">
+    <header class="cab-filtros">
+      <button type="button" class="titulo-filtros" [attr.aria-expanded]="filtrosAbiertos()" aria-controls="cuerpo-filtros-api"
+              (click)="filtrosAbiertos.set(!filtrosAbiertos())">
+        <app-icon name="filtros" />
+        <span>Filtros</span>
+        @if (activos() > 0) {
+          <span class="insignia">{{ activos() }} {{ activos() === 1 ? 'aplicado' : 'aplicados' }}</span>
+        }
+        <span class="flecha-filtros" [class.girada]="!filtrosAbiertos()"><app-icon name="chevron-abajo" /></span>
+      </button>
+
+      <ul class="chips-aplicados" aria-label="Filtros aplicados">
+        @for (f of resumenAplicados(); track f) { <li>{{ f }}</li> }
+        @empty { <li class="sin-filtros">Sin filtros: todos los registros válidos</li> }
+      </ul>
+
+      <button type="button" class="guardar" [disabled]="activos() === 0" (click)="abrirGuardar()"
+              [attr.title]="activos() === 0 ? 'Aplique al menos un filtro para guardar la consulta' : null">
+        <app-icon name="guardar" /> Guardar consulta
+      </button>
+    </header>
+
+    @if (filtrosAbiertos()) {
+      <form id="cuerpo-filtros-api" class="cuerpo-filtros" (submit)="aplicar($event)" novalidate>
+        <fieldset>
+          <legend>Ubicación</legend>
+          <label>
+            <span>Provincia</span>
+            <select (change)="cambiarLista('provincia', $event)">
+              <option value="" [selected]="!borrador().provincia">Todas</option>
+              @for (o of provincias; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === borrador().provincia">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Cantón</span>
+            <input type="text" maxlength="80" autocomplete="off" placeholder="Ej. Santo Domingo" [value]="borrador().canton"
+                   (input)="cambiarTexto('canton', $event)" />
+          </label>
+          <label>
+            <span>Distrito</span>
+            <input type="text" maxlength="80" autocomplete="off" placeholder="Ej. San Miguel" [value]="borrador().distrito"
+                   (input)="cambiarTexto('distrito', $event)" />
+          </label>
+          <label>
+            <span>Ruta</span>
+            <input type="text" maxlength="40" autocomplete="off" placeholder="Ej. 32 o Cantonal" [value]="borrador().ruta"
+                   (input)="cambiarTexto('ruta', $event)" />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Temporalidad</legend>
+          <label>
+            <span>Año</span>
+            <input type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Ej. 2024"
+                   [value]="borrador().anio ?? ''" (input)="cambiarAnio($event)" />
+          </label>
+          <label>
+            <span>Mes</span>
+            <select (change)="cambiarMes($event)">
+              <option value="" [selected]="borrador().mes === null">Todos</option>
+              @for (o of meses; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === '' + borrador().mes">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Día de la semana</span>
+            <select (change)="cambiarLista('diaSemana', $event)">
+              <option value="" [selected]="!borrador().diaSemana">Todos</option>
+              @for (o of dias; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === borrador().diaSemana">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Franja horaria</span>
+            <select (change)="cambiarLista('franja', $event)">
+              <option value="" [selected]="!borrador().franja">Todas</option>
+              @for (o of franjas; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === borrador().franja">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Clasificación</legend>
+          <label>
+            <span>Severidad</span>
+            <select (change)="cambiarLista('severidad', $event)">
+              <option value="" [selected]="!borrador().severidad">Todas</option>
+              @for (o of severidades; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === borrador().severidad">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Clima</span>
+            <select (change)="cambiarLista('clima', $event)">
+              <option value="" [selected]="!borrador().clima">Todos</option>
+              @for (o of climas; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === borrador().clima">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Estado de la calzada</span>
+            <select (change)="cambiarLista('calzada', $event)">
+              <option value="" [selected]="!borrador().calzada">Todos</option>
+              @for (o of calzadas; track o.valor) {
+                <option [value]="o.valor" [selected]="o.valor === borrador().calzada">{{ o.texto }}</option>
+              }
+            </select>
+          </label>
+        </fieldset>
+
+        <div class="acciones-filtros">
+          @if (errorFiltros(); as e) { <p class="error-filtros" role="alert">{{ e }}</p> }
+          @if (hayCambiosSinAplicar()) { <p class="pendiente-aplicar" role="status">Hay cambios sin aplicar.</p> }
+          <button type="submit" class="aplicar">Aplicar filtros</button>
+          <button type="button" class="limpiar" [disabled]="activos() === 0 && borradorActivo() === 0" (click)="limpiar()">
+            Limpiar filtros
+          </button>
+        </div>
+        <p class="nota-filtros">
+          Cantón, distrito y ruta se buscan con el texto exacto, tal como viene en los datos (con tildes). Edad, género y tipo
+          de vehículo no se ofrecen aquí: COSEVI no los trae por siniestro.
+        </p>
+      </form>
+    }
+  </section>
+
+  <section class="tarjeta" aria-label="Tabla de siniestros" [attr.aria-busy]="estado() === 'cargando'">
+    <!-- Barra de herramientas -->
+    <div class="barra">
+      <div class="grupo">
+        <span class="etiqueta-barra">Exportar</span>
+        <button type="button" class="btn" disabled title="Pendiente: el servidor todavía no tiene el servicio de exportación">
+          <app-icon name="descargar" /> CSV
+        </button>
+        <button type="button" class="btn" disabled title="Pendiente: el servidor todavía no tiene el servicio de exportación">
+          <app-icon name="descargar" /> Excel
+        </button>
+        <button type="button" class="btn" disabled title="Pendiente: el servidor todavía no tiene el servicio de exportación">
+          <app-icon name="descargar" /> PDF
+        </button>
+        <span class="pill-pendiente">Pendiente en el servidor</span>
+      </div>
+      @if (estado() === 'cargando') {
+        <span class="cargando-texto" role="status"><span class="spinner-mini" aria-hidden="true"></span> Cargando…</span>
+      }
+    </div>
+
+    @if (estado() === 'error') {
+      <div class="vacio error-carga" role="alert">
+        <h2>No se pudieron cargar los registros</h2>
+        <p>{{ error() }}</p>
+        <button type="button" class="btn-principal" (click)="cargar()">Reintentar</button>
+      </div>
+    } @else if (estado() === 'ok' && total() === 0) {
+      <div class="vacio" role="status">
+        @if (activos() > 0) {
+          <h2>Ningún siniestro cumple estos filtros</h2>
+          <p>Pruebe quitando alguno de los filtros para ver resultados.</p>
+          <button type="button" class="btn-principal" (click)="limpiar()">Limpiar filtros</button>
+        } @else {
+          <h2>Todavía no hay siniestros cargados</h2>
+          <p>
+            Cuando un administrador cargue un archivo en <a routerLink="/ingesta">Carga de datos</a>, los registros válidos
+            aparecerán aquí.
+          </p>
+        }
+      </div>
+    } @else if (estado() === 'ok' || resultado()) {
+      <p class="ayuda">Clic en un encabezado para ordenar (ascendente, descendente, sin orden). Se ordena por una columna a la vez.</p>
+
+      <div class="contenedor" [class.atenuada]="estado() === 'cargando'" role="region"
+           aria-label="Tabla de siniestros, con desplazamiento" tabindex="0">
+        <table>
+          <caption class="solo-lectores">
+            Siniestros viales, página {{ pagina() }} de {{ cantidadPaginas() }}
+          </caption>
+          <thead>
+            <tr>
+              @for (c of columnas; track c.clave) {
+                <th scope="col" [attr.aria-sort]="c.orden ? ariaSort(c) : null" [class.der]="c.alinear === 'der'">
+                  @if (c.orden) {
+                    <button type="button" class="orden-btn" (click)="ordenarPor(c)" title="Clic: cambiar el orden">
+                      <span>{{ c.titulo }}</span>
+                      <span class="flecha" aria-hidden="true">{{ direccionDe(c) === 'asc' ? '↑' : direccionDe(c) === 'desc' ? '↓' : '' }}</span>
+                    </button>
+                  } @else {
+                    <span class="sin-orden-th" title="El servidor no ordena por esta columna">{{ c.titulo }}</span>
+                  }
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filas(); track $index) {
+              <tr>
+                @for (c of columnas; track c.clave) {
+                  @if (c.clave === 'severidad') {
+                    <td><span class="sev"><i [style.background]="colorSeveridad(s)"></i>{{ c.texto(s) }}</span></td>
+                  } @else {
+                    <td [class.der]="c.alinear === 'der'">{{ c.texto(s) }}</td>
+                  }
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-paginador
+        [pagina]="pagina()"
+        [tamanio]="tamanio()"
+        [total]="total()"
+        unidad="siniestros"
+        [opcionesTamanio]="[10, 25, 50, 100, 200]"
+        (cambiarPagina)="cambiarPagina($event)"
+        (cambiarTamanio)="cambiarTamanio($event)"
+      />
+      <p class="nota-fuente">
+        Esta tabla muestra lo que COSEVI entrega. No hay tipo de vehículo, fecha exacta, coordenadas ni tiempo de respuesta
+        porque la fuente no los trae; esas columnas aparecerán cuando exista una fuente que los aporte.
+      </p>
+    }
+  </section>
+</section>
+
+<app-dialogo-guardar-consulta-api
+  [abierto]="dialogoGuardar()"
+  [resumen]="resumenAplicados()"
+  [errorServidor]="errorGuardar()"
+  [guardando]="guardando()"
+  (confirmar)="guardarConsulta($event)"
+  (cerrar)="dialogoGuardar.set(false)"
+/>

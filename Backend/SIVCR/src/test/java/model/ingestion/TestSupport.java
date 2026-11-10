@@ -19,10 +19,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import enums.LoadResult;
+import enums.UserRole;
+import model.User;
 import model.ingestion.parser.FileParserFactory;
 import model.ingestion.profile.MappingProfile;
 import model.ingestion.profile.ProfileParser;
-import model.ingestion.profile.StaticProfileCatalog;
+import model.ingestion.profile.MappingProfileCatalog;
+import model.ingestion.profile.RecordKind;
 
 /**
  * Soporte de pruebas. TODOS los datos de aquí son SINTÉTICOS (inventados para probar): no provienen de COSEVI,
@@ -30,7 +33,7 @@ import model.ingestion.profile.StaticProfileCatalog;
  */
 final class TestSupport {
 
-    static final UserRef ADMIN = new UserRef(1L, "Ana Administradora");
+    static final User ADMIN = new User(1L, "Ana Administradora", "admin@sivcr.go.cr", "x", UserRole.ADMIN);
 
     /** Encabezado real de COSEVI (siniestros). */
     static final String ENC_SINIESTROS = "Clase de accidente;Tipo de accidente;Año;Hora;Hora recodificada;Provincia ;"
@@ -121,16 +124,16 @@ final class TestSupport {
 
     // ---- ensamblado del manager con repositorios en memoria ----
 
-    static IngestionManager manager(MemLogs logs, MemReports reportes, MemRecords siniestros, MemRecords victimas,
-                                    int tamanoLote, int maxErrores) {
+    static IngestionManager manager(MemLogs logs, MemRecords registros, int tamanoLote, int maxErrores) {
         List<MappingProfile> perfiles = List.of(perfil("cosevi-siniestros"), perfil("cosevi-personas"),
                 perfil("inec-defunciones"), perfil("mopt-red-vial"), perfil("imn-clima-open-meteo"));
-        return new IngestionManager(new FileParserFactory(), new StaticProfileCatalog(perfiles), logs, reportes,
-                siniestros, victimas, GeoBounds.COSTA_RICA, tamanoLote, maxErrores);
+        return new IngestionManager(new FileParserFactory(), new MappingProfileCatalog(perfiles), logs,
+                registros, GeoBounds.COSTA_RICA, tamanoLote, maxErrores);
     }
 
     static final class MemLogs implements IngestionLogRepository {
         final List<IngestionLog> almacen = new CopyOnWriteArrayList<>();
+        final Map<Long, QualityReport> reportes = new ConcurrentHashMap<>();
         private final AtomicLong secuencia = new AtomicLong();
 
         @Override
@@ -172,31 +175,16 @@ final class TestSupport {
             copia.sort(Comparator.comparing(IngestionLog::id).reversed());
             return copia;
         }
-    }
-
-    static final class MemReports implements QualityReportRepository {
-        final Map<Long, QualityReport> almacen = new ConcurrentHashMap<>();
 
         @Override
-        public QualityReport save(QualityReport r) {
-            almacen.put(r.idCarga(), r);
+        public QualityReport guardarReporte(QualityReport r) {
+            reportes.put(r.idCarga(), r);
             return r;
         }
 
         @Override
-        public List<QualityReport> saveAll(Collection<QualityReport> entidades) {
-            entidades.forEach(this::save);
-            return List.copyOf(entidades);
-        }
-
-        @Override
-        public long count() {
-            return almacen.size();
-        }
-
-        @Override
-        public Optional<QualityReport> findByIdCarga(long idCarga) {
-            return Optional.ofNullable(almacen.get(idCarga));
+        public Optional<QualityReport> findReporte(long idCarga) {
+            return Optional.ofNullable(reportes.get(idCarga));
         }
     }
 
@@ -206,6 +194,14 @@ final class TestSupport {
         final List<Integer> lotes = Collections.synchronizedList(new ArrayList<>());
         final Set<Long> purgados = ConcurrentHashMap.newKeySet();
         volatile Consumer<List<NormalizedRecord>> alGuardar = lote -> { };
+
+        List<NormalizedRecord> siniestros() {
+            return filas.stream().filter(f -> f.tipo() == RecordKind.SINISTER).toList();
+        }
+
+        List<NormalizedRecord> victimas() {
+            return filas.stream().filter(f -> f.tipo() == RecordKind.VICTIM).toList();
+        }
 
         @Override
         public NormalizedRecord save(NormalizedRecord r) {

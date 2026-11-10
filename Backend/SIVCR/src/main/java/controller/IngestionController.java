@@ -1,13 +1,16 @@
 package controller;
 
 import enums.DataSource;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
-import model.ingestion.CurrentUserProvider;
+import model.SivcrException;
+import model.SivcrException.Tipo;
 import model.ingestion.IngestionException;
 import model.ingestion.IngestionLog;
 import model.ingestion.IngestionManager;
 import model.ingestion.QualityReport;
-import org.springframework.http.HttpStatus;
+import model.ingestion.UploadedFile;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Ingesta y calidad de datos (HU 1 a 5). Solo recibe, delega en IngestionManager y responde.
@@ -34,9 +36,9 @@ import org.springframework.web.server.ResponseStatusException;
 public class IngestionController {
 
     private final IngestionManager manager;
-    private final CurrentUserProvider usuarios;
+    private final CurrentUser usuarios;
 
-    public IngestionController(IngestionManager manager, CurrentUserProvider usuarios) {
+    public IngestionController(IngestionManager manager, CurrentUser usuarios) {
         this.manager = manager;
         this.usuarios = usuarios;
     }
@@ -48,7 +50,7 @@ public class IngestionController {
         if (file.isEmpty()) {
             throw new IngestionException("No se recibió ningún archivo o está vacío.");
         }
-        return manager.cargarArchivo(new MultipartUploadedFile(file), fuente, usuarios.actual());
+        return manager.cargarArchivo(comoArchivo(file), fuente, usuarios.get());
     }
 
     /** HU 5: historial de cargas, de la más reciente a la más antigua. */
@@ -61,6 +63,24 @@ public class IngestionController {
     @GetMapping("/{idCarga}/quality-report")
     public QualityReport getReporteCalidad(@PathVariable("idCarga") Long idCarga) {
         return manager.reporteCalidad(idCarga).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe un reporte para la carga " + idCarga));
+                () -> new SivcrException(Tipo.NO_ENCONTRADO, "No existe un reporte para la carga " + idCarga));
+    }
+
+    /** Presenta el MultipartFile de Spring como UploadedFile del dominio (sin la ruta que haya enviado el cliente). */
+    private static UploadedFile comoArchivo(MultipartFile archivo) {
+        String original = archivo.getOriginalFilename();
+        String nombre = original == null || original.isBlank() ? "archivo"
+                : original.substring(Math.max(original.lastIndexOf('/'), original.lastIndexOf('\\')) + 1);
+        return new UploadedFile() {
+            @Override
+            public String name() {
+                return nombre;
+            }
+
+            @Override
+            public InputStream open() throws IOException {
+                return archivo.getInputStream();
+            }
+        };
     }
 }

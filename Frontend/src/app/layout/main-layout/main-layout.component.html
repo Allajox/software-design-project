@@ -33,6 +33,7 @@
                  (click)="cerrarMovil()">
                 <app-icon [name]="item.icono" />
                 <span class="menu-etiqueta">{{ item.etiqueta }}</span>
+                @if (item.demo) { <span class="menu-demo" title="Datos de demostración: aún no usa el servidor">Demo</span> }
               </a>
             </li>
           }
@@ -75,6 +76,12 @@
     </header>
 
     <main class="contenido">
+      @if (ubicacion()?.demo) {
+        <p class="aviso-demo" role="note">
+          <strong>Pantalla de demostración.</strong> Trabaja con datos simulados en este navegador; todavía no está conectada
+          al servidor porque ese servicio aún no existe. Los datos reales están en el Explorador de registros.
+        </p>
+      }
       <router-outlet />
     </main>
   </div>

@@ -10,6 +10,8 @@ export interface ItemMenu {
   roles: RolUsuario[];
   /** Fase del proyecto a la que pertenece la pantalla (según el documento del SIVCR). Solo documenta: no se muestra */
   fase: 1 | 2;
+  /** true = la pantalla todavía usa datos de demostración (no está conectada al servidor); se marca en el menú */
+  demo?: boolean;
 }
 
 export interface SeccionMenu {
@@ -20,4 +22,5 @@ export interface SeccionMenu {
 export interface UbicacionActual {
   seccion: string;
   etiqueta: string;
+  demo: boolean;
 }

@@ -15,9 +15,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(peticion).pipe(
     catchError((err: HttpErrorResponse) => {
-      // Token vencido o inválido: cerrar sesión y volver al login
-      if (err.status === 401 && !req.url.includes('/auth/login')) {
-        auth.logout();
+      // Token vencido o inválido: cerrar sesión y volver al login. Solo si la petición llevaba un token: un 401 sin
+      // token no es una sesión que se venció (la vista pública, por ejemplo, la abre quien no ha iniciado sesión).
+      if (err.status === 401 && token && !req.url.includes('/auth/login') && !req.url.includes('/auth/logout')) {
+        auth.logout(false);
         router.navigate(['/login']);
       }
       return throwError(() => err);

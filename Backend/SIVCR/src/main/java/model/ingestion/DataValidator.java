@@ -14,13 +14,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import model.ingestion.profile.ColumnRule;
-import model.ingestion.profile.FieldCatalog;
 import model.ingestion.profile.FieldCatalog.Spec;
 import model.ingestion.profile.FieldCatalog.Target;
+import model.ingestion.profile.FieldCatalog;
+import model.ingestion.profile.MappingProfile.ColumnRule;
+import model.ingestion.profile.MappingProfile.RowFilter;
 import model.ingestion.profile.MappingProfile;
 import model.ingestion.profile.RecordKind;
-import model.ingestion.profile.RowFilter;
 
 /**
  * Valida y normaliza filas según el perfil de mapeo de la fuente (HU 2).

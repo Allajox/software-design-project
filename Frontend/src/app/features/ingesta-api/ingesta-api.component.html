@@ -1,0 +1,254 @@
+<section class="pagina">
+  <h1>Carga de datos</h1>
+  <p class="subtitulo">
+    Cargue los archivos de las fuentes oficiales. El servidor valida cada fila, guarda las válidas y las incompletas y
+    descarta las corruptas; al terminar le muestra el resultado y el reporte de calidad.
+  </p>
+
+  <!-- ===================== Nueva carga ===================== -->
+  @switch (fase()) {
+    @case ('inicio') {
+      <section class="bloque" aria-labelledby="t-nueva">
+        <header class="bloque-cab"><h2 id="t-nueva">Nueva carga</h2></header>
+
+        @if (errorSubida(); as e) {
+          <div class="alerta error" role="alert">
+            <span class="glifo" aria-hidden="true">✕</span>
+            <div>
+              <strong>No se pudo completar la carga</strong>
+              <p>{{ e }}</p>
+            </div>
+          </div>
+        }
+
+        <fieldset class="modos">
+          <legend class="paso">1. Elija la fuente</legend>
+          @for (f of fuentes; track f.valor) {
+            <label class="modo" [class.elegido]="fuente() === f.valor" [class.deshabilitado]="f.pendiente">
+              <input type="radio" name="fuente" [value]="f.valor" [checked]="fuente() === f.valor"
+                     [disabled]="!!f.pendiente" (change)="elegirFuente(f.valor)" />
+              <span>
+                <strong>{{ f.titulo }}</strong>
+                <small>{{ f.descripcion }}</small>
+                @if (f.pendiente) { <small class="pendiente">{{ f.pendiente }}</small> }
+              </span>
+            </label>
+          }
+        </fieldset>
+
+        <p class="paso">2. Elija el archivo</p>
+        @if (errorArchivo(); as e) {
+          <div class="alerta error" role="alert">
+            <span class="glifo" aria-hidden="true">✕</span>
+            <div><strong>No se puede usar ese archivo</strong><p>{{ e }}</p></div>
+          </div>
+        }
+        <div class="zona" [class.activa]="arrastrando()" (dragover)="alArrastrar($event, true)"
+             (dragleave)="alArrastrar($event, false)" (drop)="alSoltar($event)">
+          <app-icon name="subir" />
+          @if (archivo(); as a) {
+            <p class="zona-titulo">{{ a.name }}</p>
+            <p class="zona-sub">{{ formatoPeso(a.size) }}</p>
+            <div class="acciones-fila">
+              <button type="button" class="secundario" (click)="entrada.click()">Elegir otro…</button>
+              <button type="button" class="enlace" (click)="quitarArchivo()">Quitar</button>
+            </div>
+          } @else {
+            <p class="zona-titulo">Arrastre aquí su archivo</p>
+            <p class="zona-sub">o</p>
+            <button type="button" class="primario" (click)="entrada.click()">Elegir archivo…</button>
+          }
+          <input #entrada type="file" hidden [accept]="aceptar" (change)="alElegir($event)" />
+          <p class="zona-ayuda">CSV, JSON (o GeoJSON) o Excel (.xlsx) · hasta {{ limiteMb }} MB</p>
+        </div>
+
+        <div class="acciones-fila subir">
+          <button type="button" class="primario grande" [disabled]="!archivo()" (click)="subir()">
+            Subir y procesar
+          </button>
+        </div>
+        <p class="nota">
+          La primera fila debe tener los encabezados originales de la fuente. Un archivo con el mismo contenido que otro ya
+          cargado se rechaza para no duplicar registros. Los registros incompletos se guardan pero no cuentan en los
+          indicadores oficiales; los corruptos se descartan.
+        </p>
+      </section>
+    }
+
+    @case ('subiendo') {
+      <div class="procesando" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <div>
+          <p>El servidor está procesando <strong>{{ archivo()?.name }}</strong>…</p>
+          <p class="aviso-espera">Un archivo grande (COSEVI tiene unas 93 000 filas) puede tardar varios minutos. No cierre esta pestaña.</p>
+        </div>
+      </div>
+    }
+
+    @case ('resultado') {
+      @if (carga(); as c) {
+        <section class="bloque resultado" [class.ok]="c.resultado === 'EXITOSA'" [class.parcial]="c.resultado === 'PARCIAL'"
+                 [class.fallida]="c.resultado === 'FALLIDA'" aria-labelledby="t-resultado">
+          <header class="bloque-cab">
+            <h2 id="t-resultado">
+              <span class="glifo" aria-hidden="true">{{ simbolo[c.resultado] }}</span>
+              {{ titulo[c.resultado] }}
+            </h2>
+            <span class="contador">Carga n.º {{ c.id }}</span>
+          </header>
+          <p class="archivo">
+            <strong>{{ c.archivo }}</strong> · fuente {{ c.fuente }}
+            @if (c.perfil) { · perfil {{ c.perfil }} }
+          </p>
+          @if (c.mensaje) { <p class="mensaje-carga">{{ c.mensaje }}</p> }
+
+          @if (c.resumen; as r) {
+            @if (tieneReporte(c)) {
+              <ul class="tiles" aria-label="Resultado de la validación">
+                <li class="tile ok"><span class="glifo" aria-hidden="true">✓</span>
+                  <span class="num">{{ fmtEntero(r.validos) }}</span><span class="rot">Válidos</span></li>
+                <li class="tile aviso"><span class="glifo" aria-hidden="true">!</span>
+                  <span class="num">{{ fmtEntero(r.incompletos) }}</span><span class="rot">Incompletos (se guardan, no cuentan en los indicadores)</span></li>
+                <li class="tile error"><span class="glifo" aria-hidden="true">✕</span>
+                  <span class="num">{{ fmtEntero(r.corruptos) }}</span><span class="rot">Corruptos (descartados)</span></li>
+                <li class="tile dup"><span class="glifo" aria-hidden="true">⧉</span>
+                  <span class="num">{{ fmtEntero(r.omitidos) }}</span><span class="rot">Omitidos por el perfil de la fuente</span></li>
+              </ul>
+              <p class="calidad">
+                <strong>{{ fmtPct(porcentajeValidas(r)) }}</strong> de las filas evaluadas son válidas
+                <span class="calidad-sub">({{ fmtEntero(r.validos) }} de {{ fmtEntero(totalEvaluadas(r)) }})</span>
+              </p>
+            }
+          }
+          <div class="acciones-fila">
+            @if (tieneReporte(c)) {
+              <button type="button" class="primario" [disabled]="cargandoReporte() === c.id" (click)="verReporte(c)">
+                {{ cargandoReporte() === c.id ? 'Abriendo…' : 'Ver reporte de calidad' }}
+              </button>
+            }
+            @if (c.resultado !== 'FALLIDA') { <a class="secundario" routerLink="/registros">Ver los registros</a> }
+            <button type="button" class="secundario" (click)="otraCarga()">Cargar otro archivo</button>
+          </div>
+        </section>
+      }
+    }
+  }
+
+  <!-- ===================== Reporte de calidad ===================== -->
+  @if (reporte(); as ab) {
+    <section class="bloque" aria-labelledby="t-reporte">
+      <header class="bloque-cab">
+        <h2 id="t-reporte">Reporte de calidad · carga n.º {{ ab.carga.id }}</h2>
+        <button type="button" class="enlace" (click)="cerrarReporte()">Cerrar reporte</button>
+      </header>
+      <p class="archivo"><strong>{{ ab.carga.archivo }}</strong> · {{ formatoFecha(ab.carga.fecha) }}</p>
+
+      @if (ab.reporte; as r) {
+        <ul class="tiles" aria-label="Conteos del reporte">
+          <li class="tile ok"><span class="glifo" aria-hidden="true">✓</span>
+            <span class="num">{{ fmtEntero(r.validos) }}</span><span class="rot">Válidos</span></li>
+          <li class="tile aviso"><span class="glifo" aria-hidden="true">!</span>
+            <span class="num">{{ fmtEntero(r.incompletos) }}</span><span class="rot">Incompletos</span></li>
+          <li class="tile error"><span class="glifo" aria-hidden="true">✕</span>
+            <span class="num">{{ fmtEntero(r.corruptos) }}</span><span class="rot">Corruptos</span></li>
+          <li class="tile dup"><span class="glifo" aria-hidden="true">⧉</span>
+            <span class="num">{{ fmtEntero(r.omitidos) }}</span><span class="rot">Omitidos</span></li>
+        </ul>
+
+        @if (r.errores.length === 0) {
+          <p class="vacio-tabla">No hay errores que listar.</p>
+        } @else {
+          <div class="acciones-fila">
+            <button type="button" class="secundario" (click)="descargarErrores(r)">
+              <app-icon name="descargar" /> Descargar errores (CSV)
+            </button>
+          </div>
+          <ol class="errores" aria-label="Errores encontrados">
+            @for (e of r.errores; track $index) { <li>{{ e }}</li> }
+          </ol>
+          @if (erroresRecortados(r)) {
+            <p class="nota">
+              Se listan los primeros {{ fmtEntero(r.errores.length) }} errores; los totales de arriba son exactos.
+              Solo se guarda la fila y el motivo, no el contenido de las celdas.
+            </p>
+          }
+        }
+      } @else {
+        <p class="aviso-importar" role="status">{{ ab.motivo }}</p>
+      }
+    </section>
+  }
+
+  <!-- ===================== Historial de cargas ===================== -->
+  <section class="bloque" aria-labelledby="t-historial">
+    <header class="bloque-cab">
+      <h2 id="t-historial">Historial de cargas <span class="contador">{{ historial().length }}</span></h2>
+      <button type="button" class="enlace" [disabled]="estadoHistorial() === 'cargando'" (click)="cargarHistorial()">Actualizar</button>
+    </header>
+
+    @if (estadoHistorial() === 'cargando' && historial().length === 0) {
+      <p class="vacio-tabla" role="status">Cargando historial…</p>
+    } @else if (estadoHistorial() === 'error') {
+      <div class="alerta error" role="alert">
+        <span class="glifo" aria-hidden="true">✕</span>
+        <div>
+          <strong>No se pudo leer el historial</strong>
+          <p>{{ errorHistorial() }}</p>
+          <button type="button" class="secundario" (click)="cargarHistorial()">Reintentar</button>
+        </div>
+      </div>
+    } @else if (historial().length === 0) {
+      <p class="vacio-tabla">Todavía no se ha cargado ningún archivo.</p>
+    } @else {
+      <div class="tabla-envoltura">
+        <table class="cargas">
+          <caption class="solo-lectores">Cargas realizadas, de la más reciente a la más antigua</caption>
+          <thead>
+            <tr>
+              <th scope="col">N.º</th><th scope="col">Fecha</th><th scope="col">Fuente</th><th scope="col">Archivo</th>
+              <th scope="col">Usuario</th><th scope="col">Resultado</th>
+              <th scope="col" class="der">Válidos</th><th scope="col" class="der">Incompletos</th><th scope="col" class="der">Corruptos</th>
+              <th scope="col"><span class="solo-lectores">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of cargasPagina(); track c.id) {
+              <tr>
+                <td class="num-fila">{{ c.id }}</td>
+                <td>{{ formatoFecha(c.fecha) }}</td>
+                <td>{{ c.fuente }}</td>
+                <td class="archivo-celda" [attr.title]="c.mensaje">{{ c.archivo || '—' }}</td>
+                <td>{{ c.usuario || '—' }}</td>
+                <td>
+                  <span class="etq-grav" [class.ok]="c.resultado === 'EXITOSA'" [class.aviso]="c.resultado === 'PARCIAL'"
+                        [class.error]="c.resultado === 'FALLIDA'">
+                    <span aria-hidden="true">{{ simbolo[c.resultado] }}</span>
+                    {{ c.resultado === 'EXITOSA' ? 'Exitosa' : c.resultado === 'PARCIAL' ? 'Parcial' : 'Fallida' }}
+                  </span>
+                </td>
+                <td class="der">{{ c.resumen ? fmtEntero(c.resumen.validos) : '—' }}</td>
+                <td class="der">{{ c.resumen ? fmtEntero(c.resumen.incompletos) : '—' }}</td>
+                <td class="der">{{ c.resumen ? fmtEntero(c.resumen.corruptos) : '—' }}</td>
+                <td>
+                  <button type="button" class="enlace" [disabled]="cargandoReporte() === c.id" (click)="verReporte(c)"
+                          [attr.aria-label]="'Ver reporte de la carga ' + c.id">
+                    {{ tieneReporte(c) ? 'Ver reporte' : 'Ver detalle' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador
+        [pagina]="paginaEfectiva()"
+        [tamanio]="tamanio()"
+        [total]="historial().length"
+        unidad="cargas"
+        [opcionesTamanio]="[10, 25, 50]"
+        (cambiarPagina)="pagina.set($event)"
+        (cambiarTamanio)="cambiarTamanio($event)"
+      />
+    }
+  </section>
+</section>

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
+import { API_CONFIG } from '../config/api.config';
 import { esHashValido } from '../usuarios/credenciales';
 import { AuthService } from './auth.service';
 import { UsuariosService } from './usuarios.service';
@@ -16,8 +17,16 @@ function crearServicios() {
 }
 
 describe('UsuariosService + AuthService (RF-9)', () => {
-  beforeEach(() => localStorage.clear());
-  afterEach(() => localStorage.clear());
+  // Estas pruebas son de la versión de demostración (cuentas y login en el navegador); la real usa el servidor.
+  const useMockOriginal = API_CONFIG.useMock;
+  beforeEach(() => {
+    API_CONFIG.useMock = true;
+    localStorage.clear();
+  });
+  afterEach(() => {
+    API_CONFIG.useMock = useMockOriginal;
+    localStorage.clear();
+  });
 
   describe('arranque', () => {
     it('empieza con las tres cuentas de demostración y no expone ninguna clave', () => {

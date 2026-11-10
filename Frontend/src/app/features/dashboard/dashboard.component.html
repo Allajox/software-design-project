@@ -1,157 +1,217 @@
 <section class="pagina">
-  <h1>Dashboard de siniestralidad vial</h1>
-  <p class="subtitulo">
-    Costa Rica ·
-    @if (est.error()) {
-      <strong>no se pudo conectar con el servidor</strong>
-    } @else if (!est.listo()) {
-      <strong>cargando datos…</strong>
-    } @else {
-      <strong>datos de la base de datos</strong> ({{ est.totalRegistros() }} registros válidos)
-    }
-    <span role="group" aria-label="Exportar reporte">
-      <button type="button" (click)="exportar('csv')" [disabled]="!est.listo() || exportando()">CSV</button>
-      <button type="button" (click)="exportar('xlsx')" [disabled]="!est.listo() || exportando()">Excel</button>
-      <button type="button" (click)="exportar('pdf')" [disabled]="!est.listo() || exportando()">PDF</button>
-    </span>
-  </p>
+  <header class="encabezado">
+    <div>
+      <h1>Panel de indicadores</h1>
+      <p class="subtitulo">
+        Costa Rica ·
+        @if (est.error()) {
+          <strong>no se pudo conectar con el servidor</strong>
+        } @else if (!est.listo()) {
+          <strong>cargando datos…</strong>
+        } @else {
+          <strong>datos de la base de datos</strong> ({{ totalTexto() }} registros válidos)
+        }
+      </p>
+    </div>
 
-  <app-panel-filtros [mostrando]="kpis().siniestros" [total]="est.totalRegistros()" />
+    <div class="acciones">
+      @if (puedeGuardar()) {
+        <button type="button" class="boton" [disabled]="activos() === 0" (click)="abrirGuardar()">
+          Guardar filtros
+        </button>
+      }
+      <div class="exportar">
+        <button
+          type="button"
+          class="boton"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="menuExportar()"
+          [disabled]="!est.listo() || exportando()"
+          (click)="menuExportar.set(!menuExportar())"
+        >
+          {{ exportando() ? 'Generando…' : 'Exportar CSV - Excel - PDF' }}
+        </button>
+        @if (menuExportar()) {
+          <ul class="menu" role="menu" aria-label="Formato de exportación">
+            <li role="none"><button type="button" role="menuitem" (click)="exportar('csv')">CSV</button></li>
+            <li role="none"><button type="button" role="menuitem" (click)="exportar('xlsx')">Excel (.xlsx)</button></li>
+            <li role="none"><button type="button" role="menuitem" (click)="exportar('pdf')">PDF</button></li>
+          </ul>
+        }
+      </div>
+    </div>
+  </header>
 
-  <div class="kpis" aria-label="Indicadores clave">
-    @for (t of tarjetas(); track t.sigla) {
-      <app-tarjeta-kpi
-        [sigla]="t.sigla"
-        [nombre]="t.nombre"
-        [valor]="t.valor"
-        [unidad]="t.unidad"
-        [detalle]="t.detalle"
-        [formula]="t.formula"
-      />
-    }
+  <app-panel-selectores [mostrando]="kpis().siniestros" [total]="est.totalRegistros()" />
+
+  <div class="pestanas" role="tablist" aria-label="Secciones del panel" (keydown)="teclasPestanas($event)">
+    <button
+      type="button"
+      role="tab"
+      id="pestana-resumen"
+      aria-controls="panel-resumen"
+      [attr.aria-selected]="pestana() === 'resumen'"
+      [attr.tabindex]="pestana() === 'resumen' ? 0 : -1"
+      (click)="elegirPestana('resumen')"
+    >
+      Resumen
+    </button>
+    <button
+      type="button"
+      role="tab"
+      id="pestana-perfil"
+      aria-controls="panel-perfil"
+      [attr.aria-selected]="pestana() === 'perfil'"
+      [attr.tabindex]="pestana() === 'perfil' ? 0 : -1"
+      (click)="elegirPestana('perfil')"
+    >
+      Perfil de víctimas y riesgo
+    </button>
   </div>
+
+  @if (avisoAlcance()) {
+    <p class="alcance" role="status">{{ avisoAlcance() }}</p>
+  }
 
   @if (vacio()) {
     <div class="vacio" role="status">
       <h2>Ningún siniestro cumple estos filtros</h2>
-      <p>Prueba quitando alguno de los filtros para ver resultados.</p>
+      <p>Pruebe quitando alguno de los filtros para ver resultados.</p>
       <button type="button" (click)="limpiar()">Limpiar filtros</button>
     </div>
+  } @else if (pestana() === 'resumen') {
+    <div id="panel-resumen" role="tabpanel" aria-labelledby="pestana-resumen">
+      <div class="indicadores" aria-label="Indicadores clave">
+        @for (i of indicadores(); track i.clave) {
+          <app-indicador
+            [nombre]="i.nombre"
+            [sigla]="i.sigla"
+            [valor]="i.valor"
+            [unidad]="i.unidad"
+            [detalle]="i.detalle"
+            [formula]="i.formula"
+            [tono]="i.clave === 'ic' ? 'alerta' : 'normal'"
+          />
+        }
+      </div>
+
+      <p class="ayuda">Haga clic en un día, una franja o una barra para filtrar; otro clic quita el filtro.</p>
+
+      <div class="graficos">
+        <app-tarjeta-grafico
+          titulo="Día de la semana × franja horaria"
+          subtitulo="Cantidad de siniestros; más oscuro = más siniestros"
+        >
+          <app-mapa-calor
+            ariaLabel="Siniestros por día de la semana y franja horaria"
+            [matriz]="est.matrizDiaFranja()"
+            [diasSel]="diasSel()"
+            [franjasSel]="franjasSel()"
+            (alternarDia)="alternarDia($event)"
+            (alternarFranja)="alternarFranja($event)"
+          />
+          <app-tabla-datos
+            descripcion="Siniestros por día de la semana y franja horaria"
+            [columnas]="columnasCalor()"
+            [filas]="tablaCalor()"
+          />
+        </app-tarjeta-grafico>
+
+        <app-tarjeta-grafico
+          titulo="Pareto de rutas nacionales (incidentes)"
+          subtitulo="Las 8 rutas con más siniestros; el detalle de cada barra incluye el porcentaje acumulado"
+        >
+          <app-columnas
+            ariaLabel="Siniestros por ruta nacional"
+            seleccionable
+            [categorias]="categoriasRuta()"
+            [etiquetasCortas]="cortasRuta()"
+            [series]="serieRutas()"
+            [colores]="coloresRutas()"
+            [detalle]="detalleRuta"
+            [seleccionadas]="rutaSel()"
+            (seleccionar)="alternarRuta($event)"
+          />
+          <app-tabla-datos
+            descripcion="Siniestros por ruta nacional con porcentaje acumulado"
+            [columnas]="['Ruta', 'Siniestros', '%', '% acumulado']"
+            [filas]="tablaRuta()"
+          />
+        </app-tarjeta-grafico>
+      </div>
+    </div>
   } @else {
-    <p class="ayuda">Haz clic en una barra, un segmento o un encabezado de los gráficos para filtrar; vuelve a hacer clic para quitar el filtro.</p>
+    <div id="panel-perfil" role="tabpanel" aria-labelledby="pestana-perfil">
+      <p class="personas">{{ personasAfectadas() }}</p>
 
-    <div class="graficos">
-      <app-tarjeta-grafico
-        titulo="Siniestralidad por provincia"
-        subtitulo="TSV: porcentaje de los siniestros del total nacional"
-      >
-        <app-barras-rankeadas
-          ariaLabel="Siniestros por provincia"
-          anchoEtiqueta="110px"
-          [columnasExtra]="['Siniestros']"
-          [filas]="filasProvincia()"
-          [seleccionadas]="selProvincia()"
-          (seleccionar)="alternarProvincia($event)"
-        />
-        <app-tabla-datos
-          descripcion="Siniestros por provincia"
-          [columnas]="['Provincia', 'TSV', 'Siniestros']"
-          [filas]="tablaProvincia()"
-        />
-      </app-tarjeta-grafico>
+      <p class="ayuda">Haga clic en una barra para filtrar; otro clic quita el filtro.</p>
 
-      <app-tarjeta-grafico
-        titulo="Gravedad de los siniestros"
-        subtitulo="Más oscuro = más grave"
-      >
-        <app-dona
-          ariaLabel="Siniestros por gravedad"
-          [items]="est.porSeveridad()"
-          [seleccionadas]="f().severidades"
-          (seleccionar)="alternarSeveridad($event)"
-        />
-        <app-tabla-datos
-          descripcion="Siniestros por gravedad"
-          [columnas]="['Gravedad', 'Siniestros', '%']"
-          [filas]="tablaSeveridad()"
-        />
-      </app-tarjeta-grafico>
+      <div class="graficos">
+        <app-tarjeta-grafico
+          titulo="Víctimas por género y rango de edad"
+          subtitulo="Personas fallecidas o heridas (no incluye ilesos); los rangos son de personas de 18 años o más"
+        >
+          <app-columnas
+            ariaLabel="Víctimas por género y rango de edad"
+            seleccionable
+            [categorias]="edadesGrafico()"
+            [series]="serieGenero()"
+            [detalle]="detalleGenero"
+            [seleccionadas]="edadSel()"
+            (seleccionar)="alternarGeneroYEdad($event)"
+          />
+          <app-tabla-datos
+            descripcion="Víctimas por género y rango de edad"
+            [columnas]="['Rango de edad', 'Masculino', 'Femenino']"
+            [filas]="tablaGenero()"
+          />
+        </app-tarjeta-grafico>
 
-      <app-tarjeta-grafico
-        titulo="¿Cuándo ocurren? Día y franja horaria"
-        subtitulo="Cantidad de siniestros; más oscuro = más siniestros"
-      >
-        <app-mapa-calor
-          ariaLabel="Siniestros por día de la semana y franja horaria"
-          [matriz]="est.matrizDiaFranja()"
-          [diasSel]="f().dias"
-          [franjasSel]="f().franjas"
-          (alternarDia)="alternarDia($event)"
-          (alternarFranja)="alternarFranja($event)"
-        />
-        <app-tabla-datos
-          descripcion="Siniestros por día de la semana y franja horaria"
-          [columnas]="columnasCalor()"
-          [filas]="tablaCalor()"
-        />
-      </app-tarjeta-grafico>
+        <app-tarjeta-grafico
+          titulo="Tasa de fatalidad por tipo de vehículo"
+          subtitulo="Porcentaje de las personas del vehículo que murieron en el sitio (TFv)"
+        >
+          <app-columnas
+            ariaLabel="Tasa de fatalidad por tipo de vehículo"
+            seleccionable
+            [categorias]="categoriasVehiculo()"
+            [etiquetasCortas]="cortasVehiculo()"
+            [series]="serieVehiculo()"
+            [colores]="coloresVehiculo()"
+            [formato]="formatoPct"
+            [detalle]="detalleVehiculo"
+            [seleccionadas]="vehiculoSel()"
+            (seleccionar)="alternarVehiculo($event)"
+          />
+          <app-tabla-datos
+            descripcion="Tasa de fatalidad por tipo de vehículo"
+            [columnas]="['Vehículo', 'Personas', 'TFv']"
+            [filas]="tablaVehiculo()"
+          />
+        </app-tarjeta-grafico>
+      </div>
 
-      <app-tarjeta-grafico
-        titulo="¿Quiénes se ven involucrados? Edad y género"
-        subtitulo="Personas involucradas, filtradas por ubicación y fecha"
-      >
-        <app-piramide
-          ariaLabel="Personas involucradas por rango de edad y género"
-          [perfil]="est.perfilDemografico()"
-          [edadesSel]="f().edades"
-          [generosSel]="f().generos"
-          (alternarEdad)="alternarEdad($event)"
-          (alternarGenero)="alternarGenero($event)"
+      <div class="adversas">
+        <app-indicador
+          [nombre]="adversasPerfil().nombre"
+          [valor]="adversasPerfil().valor"
+          [unidad]="adversasPerfil().unidad"
+          [detalle]="adversasPerfil().detalle"
+          [formula]="adversasPerfil().formula"
+          tono="alerta"
         />
-        <app-tabla-datos
-          descripcion="Personas involucradas por rango de edad y género"
-          [columnas]="['Rango de edad', 'Masculino', 'Femenino']"
-          [filas]="tablaPiramide()"
-        />
-      </app-tarjeta-grafico>
-
-      <app-tarjeta-grafico
-        titulo="Tipo de vehículo"
-        subtitulo="Personas involucradas y tasa de fatalidad (TFv: % de personas fallecidas)"
-      >
-        <app-barras-rankeadas
-          ariaLabel="Siniestros por tipo de vehículo"
-          anchoEtiqueta="140px"
-          [columnasExtra]="['TFv']"
-          [filas]="filasVehiculo()"
-          [seleccionadas]="f().vehiculos"
-          (seleccionar)="alternarVehiculo($event)"
-        />
-        <app-tabla-datos
-          descripcion="Personas involucradas y tasa de fatalidad por tipo de vehículo"
-          [columnas]="['Vehículo', 'Personas', 'TFv']"
-          [filas]="tablaVehiculo()"
-        />
-      </app-tarjeta-grafico>
-
-      <app-tarjeta-grafico
-        titulo="Rutas con más siniestros"
-        subtitulo="Las 8 principales; la última columna es el porcentaje acumulado (Pareto)"
-      >
-        <app-barras-rankeadas
-          ariaLabel="Siniestros por ruta nacional"
-          anchoEtiqueta="80px"
-          [columnasExtra]="['Acum.']"
-          [filas]="filasRuta()"
-          [seleccionadas]="selRuta()"
-          (seleccionar)="alternarRuta($event)"
-        />
-        <app-tabla-datos
-          descripcion="Siniestros por ruta nacional con porcentaje acumulado"
-          [columnas]="['Ruta', 'Siniestros', '% acumulado']"
-          [filas]="tablaRuta()"
-        />
-      </app-tarjeta-grafico>
+      </div>
     </div>
   }
 </section>
+
+@if (puedeGuardar()) {
+  <app-dialogo-guardar-consulta-api
+    [abierto]="dialogoGuardar()"
+    [resumen]="resumenGuardar()"
+    [errorServidor]="errorGuardar()"
+    [guardando]="guardando()"
+    (confirmar)="guardarConsulta($event)"
+    (cerrar)="dialogoGuardar.set(false)"
+  />
+}

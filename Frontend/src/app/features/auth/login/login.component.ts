@@ -1,13 +1,18 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../core/services/auth.service';
 import { API_CONFIG } from '../../../core/config/api.config';
+import { rutaInicial } from '../../../core/config/roles.config';
 
+/**
+ * Inicio de sesión (Figma): «Ingresar» entra con correo y contraseña (POST /api/auth/login) y cada rol llega a su pantalla
+ * inicial; «Ingresar sin Credenciales» abre la vista pública (/publico), que no necesita sesión.
+ */
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -24,7 +29,7 @@ export class LoginComponent {
 
   readonly form = this.fb.nonNullable.group({
     correo: ['', [Validators.required, Validators.email]],
-    contrasena: ['', [Validators.required, Validators.minLength(6)]],
+    contrasena: ['', [Validators.required]],
   });
 
   get correo() { return this.form.controls.correo; }
@@ -35,6 +40,7 @@ export class LoginComponent {
   }
 
   iniciarSesion(): void {
+    if (this.cargando()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -44,9 +50,11 @@ export class LoginComponent {
     this.error.set(null);
 
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: (sesion) => {
         const destino = this.route.snapshot.queryParamMap.get('returnUrl');
-        this.router.navigateByUrl(destino && destino.startsWith('/') ? destino : '/dashboard');
+        // returnUrl solo si es una ruta propia (empieza con una sola «/»): nunca una dirección de otro sitio
+        const propia = !!destino && destino.startsWith('/') && !destino.startsWith('//');
+        this.router.navigateByUrl(propia ? destino : rutaInicial(sesion.usuario.rol));
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(this.traducirError(err));

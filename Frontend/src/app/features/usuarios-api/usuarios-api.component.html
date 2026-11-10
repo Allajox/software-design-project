@@ -1,0 +1,326 @@
+<section class="pagina">
+  <h1>Usuarios y Configuración</h1>
+
+  <div class="columnas">
+    <!-- ===== Crear usuario (HU 29) ===== -->
+    <section class="columna" aria-labelledby="titulo-crear">
+      <h2 id="titulo-crear">Crear Usuario</h2>
+      <form (submit)="$event.preventDefault(); crearUsuario()" novalidate autocomplete="off">
+        @if (errorNuevo()) {
+          <p class="error general" role="alert">{{ errorNuevo() }}</p>
+        }
+
+        <div class="campo">
+          <label for="nuevo-nombre">Nombre</label>
+          <input id="nuevo-nombre" type="text" autocomplete="off" [maxLength]="largoNombre" [value]="nuevoNombre()"
+                 (input)="escribirNuevo('nombre', $any($event.target).value)"
+                 [attr.aria-invalid]="erroresNuevo().nombre ? 'true' : null"
+                 [attr.aria-describedby]="erroresNuevo().nombre ? 'nuevo-nombre-error' : null" />
+          @if (erroresNuevo().nombre) { <p class="error" id="nuevo-nombre-error" role="alert">{{ erroresNuevo().nombre }}</p> }
+        </div>
+
+        <div class="campo">
+          <label for="nuevo-correo">Correo</label>
+          <input id="nuevo-correo" type="email" autocomplete="off" [maxLength]="largoCorreo" [value]="nuevoCorreo()"
+                 (input)="escribirNuevo('correo', $any($event.target).value)"
+                 [attr.aria-invalid]="erroresNuevo().correo ? 'true' : null"
+                 [attr.aria-describedby]="erroresNuevo().correo ? 'nuevo-correo-error' : null" />
+          @if (erroresNuevo().correo) { <p class="error" id="nuevo-correo-error" role="alert">{{ erroresNuevo().correo }}</p> }
+        </div>
+
+        <div class="campo">
+          <label for="nuevo-contrasena">Contraseña</label>
+          <div class="clave-fila">
+            <input id="nuevo-contrasena" [type]="verClave() ? 'text' : 'password'" autocomplete="new-password"
+                   [maxLength]="largoClave" [value]="nuevaClave()"
+                   (input)="escribirNuevo('contrasena', $any($event.target).value)"
+                   [attr.aria-invalid]="erroresNuevo().contrasena ? 'true' : null"
+                   aria-describedby="nuevo-contrasena-ayuda" />
+            <button type="button" class="mini" (click)="verClave.set(!verClave())" [attr.aria-pressed]="verClave()">
+              {{ verClave() ? 'Ocultar' : 'Ver' }}
+            </button>
+          </div>
+          <p class="ayuda-campo" id="nuevo-contrasena-ayuda">
+            @if (erroresNuevo().contrasena) {
+              <span class="error" role="alert">{{ erroresNuevo().contrasena }}</span>
+            } @else {
+              Mínimo 8 caracteres, con mayúscula, minúscula y número.
+            }
+            <button type="button" class="enlace" (click)="generarClave()">Generar contraseña temporal</button>
+          </p>
+        </div>
+
+        <div class="campo">
+          <label for="nuevo-rol">Rol</label>
+          <select id="nuevo-rol" [value]="nuevoRol()" (change)="nuevoRol.set($any($event.target).value)">
+            @for (r of roles; track r) { <option [value]="r" [selected]="nuevoRol() === r">{{ etiqueta[r] }}</option> }
+          </select>
+          @if (erroresNuevo().rol) { <p class="error" role="alert">{{ erroresNuevo().rol }}</p> }
+        </div>
+
+        <button type="submit" class="btn-pizarra" [disabled]="creando()">
+          {{ creando() ? 'Creando…' : 'Crear Usuario' }}
+        </button>
+      </form>
+    </section>
+
+    <!-- ===== Peso del ISS (HU 30) ===== -->
+    <section class="columna" aria-labelledby="titulo-pesos">
+      <h2 id="titulo-pesos">Peso del ISS</h2>
+      @if (formulario(); as f) {
+        <form (submit)="$event.preventDefault(); guardarPesos()" novalidate autocomplete="off">
+          @for (p of pesos; track p.clave) {
+            <div class="campo">
+              <label [for]="'peso-' + p.clave">{{ p.etiqueta }}</label>
+              <input
+                [id]="'peso-' + p.clave"
+                type="text"
+                inputmode="decimal"
+                maxlength="10"
+                [value]="f[p.clave]"
+                (input)="escribirPeso(p.clave, $any($event.target).value)"
+                [attr.aria-invalid]="erroresPesos()[p.clave] ? 'true' : null"
+                [attr.aria-describedby]="'ayuda-' + p.clave"
+              />
+              <span class="ayuda-campo" [id]="'ayuda-' + p.clave">
+                @if (erroresPesos()[p.clave]) {
+                  <span class="error" role="alert">{{ erroresPesos()[p.clave] }}</span>
+                } @else {
+                  {{ p.sigla }} · {{ p.ayuda }}
+                }
+              </span>
+            </div>
+          }
+
+          <p class="formula" aria-live="polite">{{ formula() }}</p>
+
+          @if (erroresPesos().general) {
+            <p class="error general" role="alert">{{ erroresPesos().general }}</p>
+          }
+
+          <div class="pie">
+            <button type="submit" class="btn-pizarra" [disabled]="!pesosCambiados() || guardandoConfig() !== null">
+              {{ guardandoConfig() === 'pesos' ? 'Guardando…' : 'Guardar Pesos' }}
+            </button>
+            @if (pesosCambiados()) { <span class="pendiente" role="status">Hay cambios sin guardar.</span> }
+          </div>
+        </form>
+      } @else if (configApi.error()) {
+        <div class="vacio" role="alert">
+          <p>{{ configApi.error() }}</p>
+          <button type="button" class="enlace" (click)="cargarConfig()">Reintentar</button>
+        </div>
+      } @else {
+        <p class="conteo" role="status">Cargando la configuración…</p>
+      }
+    </section>
+
+    <!-- ===== Condiciones adversas (HU 30) ===== -->
+    <section class="columna" aria-labelledby="titulo-adversas">
+      <h2 id="titulo-adversas">Condiciones Adversas</h2>
+      @if (formulario(); as f) {
+        <form (submit)="$event.preventDefault(); guardarDefinicion()" novalidate autocomplete="off">
+          <fieldset class="campo">
+            <legend>Clima considerado adverso</legend>
+            <div class="lista">
+              @for (o of opcionesClima(); track o.valor) {
+                <label class="opcion">
+                  <input type="checkbox" [value]="o.valor" [checked]="f.climaAdverso.includes(o.valor)"
+                         (change)="marcar('climaAdverso', o.valor, $any($event.target).checked)" />
+                  {{ o.texto }}
+                </label>
+              }
+            </div>
+          </fieldset>
+
+          <fieldset class="campo">
+            <legend>Calzada considerada adversa</legend>
+            <div class="lista">
+              @for (o of opcionesCalzada(); track o.valor) {
+                <label class="opcion">
+                  <input type="checkbox" [value]="o.valor" [checked]="f.calzadaAdversa.includes(o.valor)"
+                         (change)="marcar('calzadaAdversa', o.valor, $any($event.target).checked)" />
+                  {{ o.texto }}
+                </label>
+              }
+            </div>
+          </fieldset>
+
+          <p class="ayuda-campo">
+            Un siniestro cuenta como «en condiciones adversas» si su clima o su calzada están marcados. Sin ninguna marca,
+            el indicador vale 0.
+          </p>
+
+          @if (errorAdversas()) {
+            <p class="error general" role="alert">{{ errorAdversas() }}</p>
+          }
+
+          <div class="pie">
+            <button type="submit" class="btn-pizarra" [disabled]="!adversasCambiadas() || guardandoConfig() !== null">
+              {{ guardandoConfig() === 'adversas' ? 'Guardando…' : 'Guardar definición' }}
+            </button>
+            @if (adversasCambiadas()) { <span class="pendiente" role="status">Hay cambios sin guardar.</span> }
+          </div>
+        </form>
+      } @else if (!configApi.error()) {
+        <p class="conteo" role="status">Cargando la configuración…</p>
+      } @else {
+        <p class="conteo">La configuración no está disponible.</p>
+      }
+    </section>
+  </div>
+
+  <!-- ===== Resumen de cuentas ===== -->
+  <ul class="resumen" aria-label="Resumen de cuentas">
+    @for (r of roles; track r) {
+      <li class="mini-kpi">
+        <span class="rol" [attr.data-rol]="r">{{ etiqueta[r] }}</span>
+        <span class="cifra">{{ resumen().activasPorRol[r] }}</span>
+        <span class="detalle">{{ resumen().activasPorRol[r] === 1 ? 'cuenta activa' : 'cuentas activas' }}</span>
+      </li>
+    }
+    <li class="mini-kpi">
+      <span class="rotulo">Desactivadas</span>
+      <span class="cifra">{{ resumen().desactivadas }}</span>
+      <span class="detalle">de {{ resumen().total }} {{ resumen().total === 1 ? 'cuenta' : 'cuentas' }} en total</span>
+    </li>
+  </ul>
+
+  <!-- ===== Cuentas ===== -->
+  <section class="tarjeta cuentas" aria-labelledby="titulo-cuentas">
+    <header class="cab">
+      <h2 id="titulo-cuentas">Usuarios</h2>
+    </header>
+
+    @if (cuentasApi.error() && !cuentasApi.listo()) {
+      <div class="vacio" role="alert">
+        <p>{{ cuentasApi.error() }}</p>
+        <button type="button" class="enlace" (click)="cuentasApi.cargar()">Reintentar</button>
+      </div>
+    } @else if (!cuentasApi.listo()) {
+      <p class="conteo" role="status">Cargando las cuentas…</p>
+    } @else {
+      <div class="filtros" role="search">
+        <div class="campo-filtro buscar">
+          <label for="f-texto">Buscar por nombre o correo</label>
+          <input id="f-texto" type="search" autocomplete="off" placeholder="Ej.: carla"
+                 [value]="filtro().texto" (input)="cambiarTexto($any($event.target).value)" />
+        </div>
+        <div class="campo-filtro">
+          <label for="f-rol">Rol</label>
+          <select id="f-rol" [value]="filtro().rol" (change)="cambiarRol($any($event.target).value)">
+            <option value="">Todos los roles</option>
+            @for (r of roles; track r) { <option [value]="r" [selected]="filtro().rol === r">{{ etiqueta[r] }}</option> }
+          </select>
+        </div>
+        <div class="campo-filtro">
+          <label for="f-estado">Estado</label>
+          <select id="f-estado" [value]="filtro().estado" (change)="cambiarEstado($any($event.target).value)">
+            <option value="todos" [selected]="filtro().estado === 'todos'">Todas</option>
+            <option value="activos" [selected]="filtro().estado === 'activos'">Activas</option>
+            <option value="desactivados" [selected]="filtro().estado === 'desactivados'">Desactivadas</option>
+          </select>
+        </div>
+        @if (hayFiltro()) {
+          <button type="button" class="enlace" (click)="limpiarFiltros()">Quitar filtros</button>
+        }
+        <button type="button" class="enlace" (click)="cuentasApi.cargar()" [disabled]="cuentasApi.cargando()">
+          {{ cuentasApi.cargando() ? 'Actualizando…' : 'Actualizar lista' }}
+        </button>
+      </div>
+
+      @if (cuentasApi.error()) {
+        <p class="error general" role="alert">{{ cuentasApi.error() }}</p>
+      }
+
+      <p class="conteo" aria-live="polite">
+        Mostrando {{ fmtEntero(filas().length) }} de {{ fmtEntero(resumen().total) }}
+        {{ resumen().total === 1 ? 'cuenta' : 'cuentas' }}
+      </p>
+
+      @if (filas().length === 0) {
+        <div class="vacio">
+          <p>Ninguna cuenta coincide con la búsqueda.</p>
+          <button type="button" class="enlace" (click)="limpiarFiltros()">Quitar filtros</button>
+        </div>
+      } @else {
+        <table class="tabla" role="table" aria-labelledby="titulo-cuentas">
+          <thead>
+            <tr role="row">
+              <th scope="col">Persona</th>
+              <th scope="col">Rol</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Creada</th>
+              <th scope="col"><span class="solo-lectores">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of filas(); track f.id) {
+              <tr role="row" [class.desactivada]="!f.activo" [attr.data-correo]="f.correo">
+                <td role="cell" data-label="Persona">
+                  <div class="persona">
+                    <span class="avatar" aria-hidden="true">{{ f.iniciales }}</span>
+                    <div class="datos">
+                      <strong class="nombre">{{ f.nombre }}
+                        @if (f.esActual) { <span class="yo">Usted</span> }
+                      </strong>
+                      <span class="correo">{{ f.correo }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td role="cell" data-label="Rol"><span class="rol" [attr.data-rol]="f.rol">{{ f.rolEtiqueta }}</span></td>
+                <td role="cell" data-label="Estado">
+                  <span class="estado" [class.apagado]="!f.activo">
+                    <app-icon [name]="f.activo ? 'aplicar' : 'cerrar'" />
+                    {{ f.activo ? 'Activa' : 'Desactivada' }}
+                  </span>
+                </td>
+                <td role="cell" data-label="Creada" class="acceso">{{ f.alta }}</td>
+                <td role="cell" class="celda-acciones">
+                  <div class="acciones">
+                    <button type="button" (click)="editar(f)" [attr.aria-label]="'Editar a ' + f.nombre">
+                      <app-icon name="editar" /> Editar
+                    </button>
+
+                    <button type="button" class="btn-alternar" (click)="alternar(f)"
+                            [attr.aria-label]="(f.activo ? 'Desactivar a ' : 'Reactivar a ') + f.nombre"
+                            [attr.aria-disabled]="f.motivoDesactivar ? 'true' : null"
+                            [attr.aria-describedby]="f.motivoDesactivar ? 'mot-des-' + f.id : null"
+                            [attr.data-tip]="f.motivoDesactivar" data-tip-der>
+                      <app-icon [name]="f.activo ? 'cerrar' : 'aplicar'" /> {{ f.activo ? 'Desactivar' : 'Reactivar' }}
+                    </button>
+                    @if (f.motivoDesactivar) { <span class="solo-lectores" [id]="'mot-des-' + f.id">{{ f.motivoDesactivar }}</span> }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <p class="nota">
+        Las cuentas no se eliminan: se desactivan, porque las cargas de datos y las consultas guardadas quedan a nombre de
+        quien las hizo. Siempre debe quedar al menos una persona administradora activa, y nadie puede desactivarse ni
+        cambiarse el rol a sí mismo.
+      </p>
+    }
+  </section>
+</section>
+
+<app-dialogo-usuario
+  [abierto]="dialogoAbierto()"
+  [cuenta]="cuentaEnEdicion()"
+  [idActual]="idActual()"
+  [cuentas]="cuentasApi.cuentas()"
+  [guardador]="guardador"
+  (guardado)="alGuardar($event)"
+  (cerrar)="dialogoAbierto.set(false)"
+/>
+
+<app-modal [abierto]="confirmacion() !== null" [titulo]="confirmacion()?.titulo ?? ''" (cerrar)="confirmacion.set(null)">
+  <p class="mensaje">{{ confirmacion()?.mensaje }}</p>
+  <div acciones>
+    <button type="button" class="m-secundario" (click)="confirmacion.set(null)">Cancelar</button>
+    <button type="button" class="m-peligro" (click)="ejecutarConfirmacion()">{{ confirmacion()?.boton }}</button>
+  </div>
+</app-modal>

@@ -1,52 +1,55 @@
-$azul: #0b3d91;
-$azul-claro: #1e6bd6;
-$rojo: #c62828;
-$gris: #5f6b7a;
-$borde: #d3dae3;
+$pizarra: #2b3a4d;
+$pizarra-hover: #3a4b61;
 
 .login-page {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: linear-gradient(135deg, $azul 0%, $azul-claro 100%);
+  padding: 1.25rem 1.5rem 2rem;
+  background: var(--fondo);
+}
+
+/* «Panel de indicadores», arriba a la izquierda, como en Figma */
+.titulo-app {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--texto);
 }
 
 .login-card {
   width: 100%;
-  max-width: 420px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-}
+  max-width: 440px;
+  margin: clamp(2rem, 9vh, 5rem) auto 0;
 
-.login-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
-
-  .logo { font-size: 2.5rem; }
-  h1 { margin: 0.25rem 0; color: $azul; letter-spacing: 2px; }
-  p { margin: 0; color: $gris; font-size: 0.85rem; }
+  h1 {
+    margin: 0 0 1.75rem;
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--azul);
+  }
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 
-  label { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem; }
+  label { margin-bottom: 0.4rem; font-size: 1rem; color: var(--texto); }
 
   input {
-    padding: 0.7rem 0.8rem;
-    border: 1px solid $borde;
-    border-radius: 8px;
-    font-size: 1rem;
     width: 100%;
-    box-sizing: border-box;
+    min-height: 46px;
+    padding: 0.7rem 0.9rem;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--texto);
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
 
-    &:focus { outline: 2px solid $azul-claro; border-color: transparent; }
-    &.invalid { border-color: $rojo; }
+    &::placeholder { color: #9aa5b1; }
+    &:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 1px; }
+    &.invalid { border-color: var(--rojo); }
   }
 }
 
@@ -60,49 +63,70 @@ $borde: #d3dae3;
     right: 0.5rem;
     top: 50%;
     transform: translateY(-50%);
+    padding: 4px 6px;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--azul-claro);
     background: none;
     border: none;
-    color: $azul-claro;
-    font-weight: 600;
+    border-radius: 4px;
     cursor: pointer;
+
+    &:focus-visible { outline: 2px solid var(--azul-claro); }
   }
 }
 
-.error-text { color: $rojo; margin-top: 0.3rem; font-size: 0.8rem; }
+.error-text { margin-top: 0.35rem; font-size: 0.85rem; color: var(--rojo); }
 
 .alert {
-  background: #fdecea;
-  color: $rojo;
-  border: 1px solid #f5c2c0;
+  margin-bottom: 1.1rem;
   padding: 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  color: var(--rojo);
+  background: #fdecea;
+  border: 1px solid #f5c2c0;
   border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
 }
 
-.btn-primary {
+/* Dos botones oscuros apilados: «Ingresar» e «Ingresar sin Credenciales» */
+.botones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.6rem;
+}
+
+.btn {
+  display: block;
   width: 100%;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 8px;
-  background: $azul;
-  color: #fff;
+  min-height: 46px;
+  padding: 0.75rem 1rem;
+  font: inherit;
   font-size: 1rem;
   font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  color: #fff;
+  background: $pizarra;
+  border: 0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s;
 
-  &:hover:not(:disabled) { background: $azul-claro; }
+  &:hover:not(:disabled) { background: $pizarra-hover; }
+  &:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .demo-box {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
   padding: 0.8rem 1rem;
-  background: #f3f6fb;
+  font-size: 0.82rem;
+  color: var(--gris);
+  background: #fff;
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  font-size: 0.8rem;
-  color: $gris;
 
   ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
 }

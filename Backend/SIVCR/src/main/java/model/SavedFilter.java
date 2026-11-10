@@ -1,19 +1,7 @@
 package model;
 
-public class SavedFilter {
-    private String nombre;
-    private FilterCriteria criterio;
-    private User usuario;
+import java.time.LocalDateTime;
 
-    public SavedFilter(String nombre, FilterCriteria criterio, User usuario) {
-        this.nombre = nombre;
-        this.criterio = criterio;
-        this.usuario = usuario;
-    }
-
-    @Override
-    public String toString() {
-        return "SavedFilter{" + "nombre=" + nombre + 
-                ", criterio=" + criterio + ", usuario=" + usuario.getName() + '}';
-    }
+/** Filtro que un usuario guardó con un nombre (HU 22). La tabla saved_filter lo asocia a su dueño. */
+public record SavedFilter(Long id, String nombre, FilterCriteria criterios, LocalDateTime creadoEn) {
 }

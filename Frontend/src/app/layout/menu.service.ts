@@ -28,7 +28,7 @@ export class MenuService {
     for (const seccion of MENU) {
       for (const item of seccion.items) {
         if (ruta === item.ruta || ruta.startsWith(item.ruta + '/')) {
-          return { seccion: seccion.titulo, etiqueta: item.etiqueta };
+          return { seccion: seccion.titulo, etiqueta: item.etiqueta, demo: item.demo === true };
         }
       }
     }

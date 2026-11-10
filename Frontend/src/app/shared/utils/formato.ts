@@ -11,3 +11,7 @@ export const fmtPct = (n: number): string => `${decimal1.format(n)} %`;
 const fechaHora = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeStyle: 'short' });
 /** «5 nov 2026, 2:20 p. m.» a partir de una fecha ISO */
 export const fmtFechaHora = (iso: string): string => fechaHora.format(new Date(iso));
+
+const fecha = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium' });
+/** «5 nov 2026» a partir de una fecha ISO */
+export const fmtFecha = (iso: string): string => fecha.format(new Date(iso));

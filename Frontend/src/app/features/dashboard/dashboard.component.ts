@@ -1,220 +1,335 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { DatosVialesService } from '../../core/services/datos-viales.service';
+import { HttpClient } from '@angular/common/http';
+import { Component, computed, ElementRef, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { aCriteriosDelPanel } from '../../core/api/criterios-panel';
+import { ConsultasApiService } from '../../core/api/consultas-api.service';
+import { mensajeDeError } from '../../core/api/errores-api';
+import { API_CONFIG } from '../../core/config/api.config';
+import { ROLES_ANALISIS } from '../../core/config/roles.config';
+import { DIAS, FRANJAS } from '../../core/models/catalogos';
+import {
+  CAMPOS_FILTRO_PANEL, FILTROS_SOLO_PERSONAS, FILTROS_SOLO_SINIESTROS, resumirFiltrosPanel,
+} from '../../core/models/filtros-panel';
+import { AuthService } from '../../core/services/auth.service';
+import { AvisosService } from '../../core/services/avisos.service';
 import { EstadisticasService } from '../../core/services/estadisticas.service';
-import { FiltrosService } from '../../core/services/filtros.service';
-import { PESOS_SEVERIDAD } from '../../core/services/kpi.calculator';
+import { nombreArchivo } from '../../core/services/exportacion';
+import { FiltrosPanelService } from '../../core/services/filtros-panel.service';
+import { OpcionesPanelService } from '../../core/services/opciones-panel.service';
+import { DialogoGuardarConsultaApiComponent } from '../../shared/ui/dialogo-guardar-consulta-api.component';
+import { descargar } from '../../shared/utils/descarga';
 import { fmtDec1, fmtDec2, fmtEntero, fmtPct } from '../../shared/utils/formato';
-import { BarrasRankeadasComponent, FilaBarra } from './graficos/barras-rankeadas.component';
-import { DonaComponent } from './graficos/dona.component';
+import { PALETA } from '../../shared/utils/paleta';
+import { BarraElegida, ColumnasComponent, SerieColumnas } from './graficos/columnas.component';
 import { MapaCalorComponent } from './graficos/mapa-calor.component';
-import { PiramideComponent } from './graficos/piramide.component';
 import { TablaDatosComponent } from './graficos/tabla-datos.component';
 import { TarjetaGraficoComponent } from './graficos/tarjeta-grafico.component';
-import { PanelFiltrosComponent } from './panel-filtros/panel-filtros.component';
-import { TarjetaKpiComponent } from './tarjeta-kpi.component';
-import { HttpClient } from '@angular/common/http';
-import { API_CONFIG } from '../../core/config/api.config';
-import { DIAS, EDADES, FRANJAS, GENEROS, PROVINCIAS, SEVERIDADES, TipoVehiculo } from '../../core/models/catalogos';
-import { AvisosService } from '../../core/services/avisos.service';
-import { nombreArchivo } from '../../core/services/exportacion';
-import { descargar } from '../../shared/utils/descarga';
+import { IndicadorComponent } from './indicador.component';
+import { PanelSelectoresComponent } from './panel-selectores/panel-selectores.component';
 
-/** Comprueba que un texto pertenece a un catálogo y deja a TypeScript saber de qué tipo es */
-function enCatalogo<T extends string>(catalogo: readonly T[], valor: string): valor is T {
-  return (catalogo as readonly string[]).includes(valor);
+/** Nombres cortos bajo las barras de vehículos (como «Moto», «Auto», «Bus» en Figma); el detalle y la tabla traen el nombre completo */
+const VEHICULO_CORTO: Record<string, string> = {
+  Motocicleta: 'Moto', Automóvil: 'Auto', Autobús: 'Bus', Bicicleta: 'Bici',
+  'Cabezal con remolque': 'Cabezal c/ remolque', 'Cabezal sin remolque': 'Cabezal s/ remolque',
+  'Vehículo con remolque': 'Veh. c/ remolque',
+};
+
+type Pestana = 'resumen' | 'perfil';
+type FormatoExportacion = 'csv' | 'xlsx' | 'pdf';
+
+/** Cada barra con un azul de la rampa según su tamaño (la mayor, la más oscura); las más pálidas se descartan. */
+function coloresPorMagnitud(valores: readonly number[]): string[] {
+  const rampa = PALETA.secuencial.slice(1);
+  const maximo = Math.max(0, ...valores);
+  return valores.map((v) =>
+    maximo === 0 || v <= 0 ? PALETA.vacio : rampa[Math.min(rampa.length - 1, Math.ceil((v / maximo) * rampa.length) - 1)],
+  );
 }
 
 /**
- * Dashboard de siniestralidad vial (fase 1): filtros (RF-2), KPIs (RF-3) y gráficos (sección 4).
- * Es una pantalla "tonta": todo el cálculo está en EstadisticasService y el estado de los
- * filtros en FiltrosService. Aquí solo se conectan los datos con los componentes visuales
- * y se traducen los clics de los gráficos a filtros.
+ * Panel de indicadores (Figma «Panel de indicadores» y «Perfil de víctimas y riesgo»): 13 filtros de una sola opción,
+ * dos pestañas, los indicadores TSV, ISS, TPR y condiciones adversas, el mapa de calor día × franja, el Pareto de
+ * rutas, las víctimas por género y edad y la tasa de fatalidad por vehículo. Es una pantalla «tonta»: los números los
+ * calcula el servidor (GET /api/dashboard) y llegan por EstadisticasService; aquí solo se presentan y los clics en los
+ * gráficos se traducen a filtros.
  */
 @Component({
   selector: 'app-dashboard',
   imports: [
-    PanelFiltrosComponent, TarjetaKpiComponent, TarjetaGraficoComponent, TablaDatosComponent,
-    BarrasRankeadasComponent, DonaComponent, MapaCalorComponent, PiramideComponent,
+    PanelSelectoresComponent, IndicadorComponent, TarjetaGraficoComponent, TablaDatosComponent, MapaCalorComponent,
+    ColumnasComponent, DialogoGuardarConsultaApiComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
+  host: { '(document:click)': 'cerrarMenuSiClicFuera($event)', '(document:keydown.escape)': 'menuExportar.set(false)' },
 })
 export class DashboardComponent {
   protected readonly est = inject(EstadisticasService);
-  protected readonly datos = inject(DatosVialesService);
-  private readonly filtrosSrv = inject(FiltrosService);
+  private readonly filtrosSrv = inject(FiltrosPanelService);
+  private readonly opciones = inject(OpcionesPanelService);
   private readonly http = inject(HttpClient);
   private readonly avisos = inject(AvisosService);
-  protected readonly f = this.filtrosSrv.filtros;
+  private readonly consultasApi = inject(ConsultasApiService);
+  private readonly auth = inject(AuthService);
+  private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
 
+  protected readonly f = this.filtrosSrv.filtros;
+  protected readonly activos = this.filtrosSrv.activos;
   protected readonly kpis = this.est.kpis;
+  protected readonly totalTexto = computed(() => fmtEntero(this.est.totalRegistros()));
   protected readonly vacio = computed(() => this.est.listo() && this.kpis().siniestros === 0);
 
-  // ---------- Tarjetas KPI ----------
-  protected readonly tarjetas = computed(() => {
+  protected readonly pestana = signal<Pestana>('resumen');
+  protected readonly menuExportar = signal(false);
+  protected readonly exportando = signal(false);
+
+  /** Guardar la combinación de filtros es para quienes analizan; el Consultor Público no ve el botón */
+  protected readonly puedeGuardar = computed(() => API_CONFIG.datosReales && this.auth.tieneRol(ROLES_ANALISIS));
+  protected readonly dialogoGuardar = signal(false);
+  protected readonly guardando = signal(false);
+  protected readonly errorGuardar = signal<string | null>(null);
+
+  /** Frases de los filtros que se guardan; el vehículo se avisa aparte porque el servidor no lo guarda */
+  protected readonly resumenGuardar = computed(() =>
+    resumirFiltrosPanel(this.f()).map((frase) => (frase.startsWith('Vehículo:') ? `${frase} (no se guarda)` : frase)),
+  );
+
+  // ---------- Indicadores ----------
+
+  protected readonly indicadores = computed(() => {
     const k = this.kpis();
-    const vacio = this.vacio();
     const f = this.f();
+    const vacio = this.vacio();
     const hayZona = !!(f.provincia || f.canton || f.distrito || f.ruta);
-    const sinDatos = '—';
     const sinTpr = k.tpr <= 0;
+    const sinDatos = '—';
     return [
       {
-        sigla: 'SINIESTROS', nombre: 'Siniestros registrados',
-        valor: fmtEntero(k.siniestros), unidad: '',
-        detalle: `de ${fmtEntero(k.totalRegistros)} en el período completo`,
-        formula: 'Cantidad de siniestros que cumplen todos los filtros activos.',
-      },
-      {
-        sigla: 'TSV', nombre: 'Tasa de siniestralidad vial',
+        clave: 'tsv', nombre: 'Tasa de siniestralidad vial', sigla: 'TSV',
         valor: vacio ? sinDatos : fmtDec1(k.tsv), unidad: vacio ? '' : '%',
-        detalle: hayZona ? 'de los siniestros del total nacional' : 'Sin zona elegida: es el total nacional',
-        formula: 'TSV = (siniestros de la región ÷ total nacional) × 100. El total nacional respeta los filtros que no son de ubicación.',
+        detalle: hayZona ? 'de los siniestros del total nacional' : 'Global: es el total nacional',
+        formula: 'TSV = (siniestros de la zona ÷ total nacional) × 100. El total nacional respeta los filtros que no son de ubicación.',
       },
       {
-        sigla: 'ISS', nombre: 'Índice de severidad',
+        clave: 'iss', nombre: 'Índice de severidad', sigla: 'ISS',
         valor: vacio ? sinDatos : fmtDec2(k.iss), unidad: '',
-        detalle: `Pesos: fallecido ${PESOS_SEVERIDAD.w1Fallecidos} · muertos o graves ${PESOS_SEVERIDAD.w2Graves} · solo leves ${PESOS_SEVERIDAD.w3Leves}`,
-        formula: 'ISS = (W1·siniestros de categoría fallecido + W2·siniestros con muertos o graves + W3·siniestros con solo heridos leves) ÷ total de siniestros. Los pesos W son supuestos configurables.',
+        detalle: 'Ponderación configurable',
+        formula: 'ISS = (W1·fallecidos + W2·heridos graves + W3·heridos leves) ÷ total de siniestros. Los pesos W se configuran en Usuarios y Configuración.',
       },
       {
-        sigla: 'TPR', nombre: 'Tiempo promedio de respuesta',
+        clave: 'tpr', nombre: 'Tiempo promedio de respuesta', sigla: 'TPR',
         valor: vacio || sinTpr ? sinDatos : fmtDec1(k.tpr), unidad: vacio || sinTpr ? '' : 'min',
-        detalle: sinTpr ? 'La fuente (COSEVI) no trae este dato' : 'hasta la llegada de los cuerpos de atención',
-        formula: 'TPR = suma de los tiempos de respuesta ÷ cantidad de siniestros.',
+        detalle: sinTpr ? 'La fuente (COSEVI) no trae este dato' : 'Cuerpos de atención',
+        formula: 'TPR = suma de los tiempos de respuesta ÷ cantidad de siniestros con tiempo registrado.',
       },
-      {
-        sigla: 'VÍCTIMAS', nombre: 'Personas afectadas',
-        valor: fmtEntero(k.victimas), unidad: '',
-        detalle: `${fmtEntero(k.fallecidos)} fallecidas · ${fmtEntero(k.heridosGraves)} graves · ${fmtEntero(k.heridosLeves)} leves`,
-        formula: 'Fallecidos + heridos graves + heridos leves de las personas registradas (no incluye ilesos).',
-      },
-      {
-        sigla: 'IC', nombre: 'Impacto por clima y calzada',
-        valor: vacio ? sinDatos : fmtDec1(k.ic), unidad: vacio ? '' : '%',
-        detalle: 'con lluvia, neblina o derrumbe',
-        formula: 'IC = (siniestros con clima o calzada adversos ÷ total de siniestros) × 100. Adverso: lluvia, lluvia fuerte, neblina o derrumbe.',
-      },
+      this.adversas('Condiciones adversas', 'Clima o calzada'),
     ];
   });
 
-  // ---------- Datos de cada gráfico ----------
-  protected readonly selProvincia = computed(() => (this.f().provincia ? [this.f().provincia] : []));
-  protected readonly selRuta = computed(() => (this.f().ruta ? [this.f().ruta] : []));
-
-  protected readonly filasProvincia = computed<FilaBarra[]>(() =>
-    this.est.porProvincia().map((p) => ({
-      clave: p.etiqueta,
-      etiqueta: p.etiqueta,
-      valor: p.porcentaje,
-      texto: fmtPct(p.porcentaje),
-      extras: [fmtEntero(p.valor)],
-      tip: `${p.etiqueta}\nTSV ${fmtPct(p.porcentaje)} · ${fmtEntero(p.valor)} siniestros`,
-    })),
+  protected readonly adversasPerfil = computed(() =>
+    this.adversas('Siniestros en condiciones adversas', 'Clima o calzada adversos sobre el total filtrado'),
   );
 
-  protected readonly filasVehiculo = computed<FilaBarra[]>(() =>
-    this.est.porVehiculo().map((v) => ({
-      clave: v.etiqueta,
-      etiqueta: v.etiqueta,
-      valor: v.valor,
-      texto: fmtEntero(v.valor),
-      extras: [fmtPct(v.tasaFatalidad)],
-      tip: `${v.etiqueta}\n${fmtEntero(v.valor)} Personas (${fmtPct(v.porcentaje)})\nTasa de fatalidad: ${fmtPct(v.tasaFatalidad)}`,
-    })),
-  );
+  private adversas(nombre: string, detalle: string) {
+    const vacio = this.vacio();
+    return {
+      clave: 'ic', nombre, sigla: '',
+      valor: vacio ? '—' : fmtDec1(this.kpis().ic), unidad: vacio ? '' : '%', detalle,
+      formula: 'IC = (siniestros con clima o calzada adversos ÷ total de siniestros) × 100. Qué se considera adverso se configura en Usuarios y Configuración.',
+    };
+  }
 
-  protected readonly filasRuta = computed<FilaBarra[]>(() =>
-    this.est.rutasPrincipales().map((r) => ({
-      clave: r.etiqueta,
-      etiqueta: r.etiqueta,
-      valor: r.valor,
-      texto: fmtEntero(r.valor),
-      extras: [fmtPct(r.acumulado)],
-      tip: `${r.etiqueta}\n${fmtEntero(r.valor)} siniestros (${fmtPct(r.porcentaje)})\nAcumulado: ${fmtPct(r.acumulado)}`,
-    })),
-  );
+  /** Personas afectadas (fallecidas, heridas graves y leves) con los filtros de personas */
+  protected readonly personasAfectadas = computed(() => {
+    const k = this.kpis();
+    return `${fmtEntero(k.victimas)} personas afectadas: ${fmtEntero(k.fallecidos)} fallecidas · ${fmtEntero(k.heridosGraves)} heridas graves · ${fmtEntero(k.heridosLeves)} heridas leves`;
+  });
 
-  // ---------- Tablas (alternativa accesible a cada gráfico) ----------
-  protected readonly tablaProvincia = computed(() =>
-    this.est.porProvincia().map((p) => [p.etiqueta, fmtPct(p.porcentaje), fmtEntero(p.valor)]),
-  );
-  protected readonly tablaVehiculo = computed(() =>
-    this.est.porVehiculo().map((v) => [v.etiqueta, fmtEntero(v.valor), fmtPct(v.tasaFatalidad)]),
-  );
-  protected readonly tablaSeveridad = computed(() =>
-    this.est.porSeveridad().map((s) => [s.etiqueta, fmtEntero(s.valor), fmtPct(s.porcentaje)]),
-  );
-  protected readonly tablaRuta = computed(() =>
-    this.est.rutasPrincipales().map((r) => [r.etiqueta, fmtEntero(r.valor), fmtPct(r.acumulado)]),
-  );
+  /**
+   * Los filtros de ruta, franja, clima y calzada no existen para las personas, y los de vehículo, edad y género no
+   * existen para los siniestros (COSEVI no permite enlazar a una persona con su siniestro). Si hay alguno elegido que
+   * no afecta a la pestaña abierta, se avisa para que nadie piense que el gráfico «no responde».
+   */
+  protected readonly avisoAlcance = computed(() => {
+    const f = this.f();
+    const enResumen = this.pestana() === 'resumen';
+    const sinEfecto = enResumen ? FILTROS_SOLO_PERSONAS : FILTROS_SOLO_SINIESTROS;
+    const elegidos = CAMPOS_FILTRO_PANEL.filter((c) => sinEfecto.includes(c.clave) && f[c.clave] !== '').map((c) =>
+      c.etiqueta.toLowerCase(),
+    );
+    if (elegidos.length === 0) return '';
+    const lista = elegidos.length === 1 ? elegidos[0] : `${elegidos.slice(0, -1).join(', ')} y ${elegidos.at(-1)}`;
+    const quien = enResumen ? 'personas' : 'siniestros';
+    const que = enResumen ? 'los indicadores y gráficos de siniestros' : 'los gráficos de víctimas';
+    return elegidos.length === 1
+      ? `El filtro de ${lista} solo aplica a datos de ${quien}: no cambia ${que}.`
+      : `Los filtros de ${lista} solo aplican a datos de ${quien}: no cambian ${que}.`;
+  });
+
+  // ---------- Resumen: mapa de calor y Pareto ----------
+
   protected readonly tablaCalor = computed(() => {
     const m = this.est.matrizDiaFranja();
     return m.dias.map((dia, i) => [dia, ...m.valores[i].map(fmtEntero)]);
   });
   protected readonly columnasCalor = computed(() => ['Día', ...this.est.matrizDiaFranja().franjas]);
-  protected readonly tablaPiramide = computed(() => {
+  protected readonly diasSel = computed(() => (this.f().dia ? [this.f().dia] : []));
+  protected readonly franjasSel = computed(() => (this.f().franja ? [this.f().franja] : []));
+
+  private readonly rutas = computed(() => this.est.rutasPrincipales());
+  protected readonly categoriasRuta = computed(() => this.rutas().map((r) => r.etiqueta));
+  protected readonly cortasRuta = computed(() => this.rutas().map((r) => r.etiqueta.replace(/^Ruta\s+/i, 'R')));
+  protected readonly serieRutas = computed<SerieColumnas[]>(() => [
+    { nombre: 'Siniestros', color: PALETA.serie1, valores: this.rutas().map((r) => r.valor) },
+  ]);
+  protected readonly coloresRutas = computed(() => coloresPorMagnitud(this.rutas().map((r) => r.valor)));
+  protected readonly rutaSel = computed(() => (this.f().ruta ? [this.f().ruta] : []));
+  protected readonly tablaRuta = computed(() =>
+    this.rutas().map((r) => [r.etiqueta, fmtEntero(r.valor), fmtPct(r.porcentaje), fmtPct(r.acumulado)]),
+  );
+  protected readonly detalleRuta = (ruta: string, _serie: string, valor: number): string => {
+    const r = this.rutas().find((x) => x.etiqueta === ruta);
+    return `${ruta}\n${fmtEntero(valor)} siniestros (${fmtPct(r?.porcentaje ?? 0)})\nAcumulado: ${fmtPct(r?.acumulado ?? 0)}`;
+  };
+
+  // ---------- Perfil: víctimas por género y edad, y tasa de fatalidad por vehículo ----------
+
+  /** De menor a mayor edad (el servidor las manda de mayor a menor, como pirámide) */
+  protected readonly edadesGrafico = computed(() => [...this.est.perfilDemografico().edades].reverse());
+  protected readonly serieGenero = computed<SerieColumnas[]>(() => {
     const p = this.est.perfilDemografico();
-    return p.edades.map((e, i) => [e, fmtEntero(p.masculino[i]), fmtEntero(p.femenino[i])]);
+    return [
+      { nombre: 'Masculino', color: PALETA.serie1, valores: [...p.masculino].reverse() },
+      { nombre: 'Femenino', color: PALETA.serie2, valores: [...p.femenino].reverse() },
+    ];
   });
+  protected readonly edadSel = computed(() => (this.f().edad && this.f().genero ? [this.f().edad] : []));
+  protected readonly tablaGenero = computed(() => {
+    const p = this.est.perfilDemografico();
+    return [...p.edades].reverse().map((e, i) => [
+      e, fmtEntero([...p.masculino].reverse()[i]), fmtEntero([...p.femenino].reverse()[i]),
+    ]);
+  });
+  protected readonly detalleGenero = (edad: string, genero: string, valor: number): string =>
+    `${edad} años · ${genero}\n${fmtEntero(valor)} personas`;
 
-  // ---------- Clics en los gráficos -> filtros ----------
-  protected alternarProvincia(valor: string): void {
-    if (!enCatalogo(PROVINCIAS, valor)) return;
-    this.filtrosSrv.establecer('provincia', this.f().provincia === valor ? '' : valor);
+  /** De mayor a menor tasa de fatalidad */
+  private readonly vehiculos = computed(() =>
+    [...this.est.porVehiculo()].sort((a, b) => b.tasaFatalidad - a.tasaFatalidad || b.valor - a.valor),
+  );
+  protected readonly categoriasVehiculo = computed(() => this.vehiculos().map((v) => v.etiqueta));
+  protected readonly cortasVehiculo = computed(() => this.vehiculos().map((v) => VEHICULO_CORTO[v.etiqueta] ?? v.etiqueta));
+  protected readonly serieVehiculo = computed<SerieColumnas[]>(() => [
+    { nombre: 'Tasa de fatalidad', color: PALETA.serie1, valores: this.vehiculos().map((v) => v.tasaFatalidad) },
+  ]);
+  protected readonly coloresVehiculo = computed(() => coloresPorMagnitud(this.vehiculos().map((v) => v.tasaFatalidad)));
+  protected readonly vehiculoSel = computed(() => (this.f().vehiculo ? [this.f().vehiculo] : []));
+  protected readonly tablaVehiculo = computed(() =>
+    this.vehiculos().map((v) => [v.etiqueta, fmtEntero(v.valor), fmtPct(v.tasaFatalidad)]),
+  );
+  protected readonly detalleVehiculo = (vehiculo: string, _serie: string, valor: number): string => {
+    const v = this.vehiculos().find((x) => x.etiqueta === vehiculo);
+    const aviso = this.esFiltrable(vehiculo) ? '' : '\nNo se puede usar como filtro';
+    return `${vehiculo}\nTasa de fatalidad: ${fmtPct(valor)}\n${fmtEntero(v?.valor ?? 0)} personas${aviso}`;
+  };
+  protected readonly formatoPct = fmtPct;
+
+  // ---------- Pestañas ----------
+
+  protected elegirPestana(p: Pestana): void {
+    this.pestana.set(p);
   }
 
-  protected alternarRuta(valor: string): void {
-    this.filtrosSrv.establecer('ruta', this.f().ruta === valor ? '' : valor);
+  /** Flechas izquierda y derecha pasan de una pestaña a la otra (patrón de pestañas del teclado) */
+  protected teclasPestanas(evento: KeyboardEvent): void {
+    if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+    evento.preventDefault();
+    const siguiente: Pestana = this.pestana() === 'resumen' ? 'perfil' : 'resumen';
+    this.pestana.set(siguiente);
+    this.elemento.nativeElement.querySelector<HTMLElement>(`#pestana-${siguiente}`)?.focus();
   }
 
-  protected alternarVehiculo(valor: string): void {
-    this.filtrosSrv.alternar('vehiculos', valor as TipoVehiculo);
-  }
-
-  protected alternarSeveridad(valor: string): void {
-    if (enCatalogo(SEVERIDADES, valor)) this.filtrosSrv.alternar('severidades', valor);
-  }
+  // ---------- Clics en los gráficos → filtros ----------
 
   protected alternarDia(valor: string): void {
-    if (enCatalogo(DIAS, valor)) this.filtrosSrv.alternar('dias', valor);
+    if ((DIAS as readonly string[]).includes(valor)) this.filtrosSrv.alternar('dia', valor);
   }
 
   protected alternarFranja(valor: string): void {
-    if (enCatalogo(FRANJAS, valor)) this.filtrosSrv.alternar('franjas', valor);
+    if ((FRANJAS as readonly string[]).includes(valor)) this.filtrosSrv.alternar('franja', valor);
   }
 
-  protected alternarEdad(valor: string): void {
-    if (enCatalogo(EDADES, valor)) this.filtrosSrv.alternar('edades', valor);
+  protected alternarRuta(barra: BarraElegida): void {
+    this.filtrosSrv.alternar('ruta', barra.categoria);
   }
 
-  protected alternarGenero(valor: string): void {
-    if (enCatalogo(GENEROS, valor)) this.filtrosSrv.alternar('generos', valor);
+  protected alternarVehiculo(barra: BarraElegida): void {
+    if (this.esFiltrable(barra.categoria)) this.filtrosSrv.alternar('vehiculo', barra.categoria);
+  }
+
+  /** Un clic en una barra de género y edad elige las dos cosas; otro clic en la misma las quita */
+  protected alternarGeneroYEdad(barra: BarraElegida): void {
+    const f = this.f();
+    const ya = f.edad === barra.categoria && f.genero === barra.serie;
+    this.filtrosSrv.establecer('edad', ya ? '' : barra.categoria);
+    this.filtrosSrv.establecer('genero', ya ? '' : barra.serie);
+  }
+
+  /** «Peatón» y «Sin dato» son grupos del gráfico, no tipos de vehículo que exista en los datos */
+  private esFiltrable(vehiculo: string): boolean {
+    return this.opciones.datos().vehiculos.includes(vehiculo);
   }
 
   protected limpiar(): void {
     this.filtrosSrv.limpiar();
   }
 
-  protected readonly exportando = signal(false);
+  // ---------- Exportar ----------
 
-protected exportar(formato: 'csv' | 'xlsx' | 'pdf'): void {
-  this.exportando.set(true);
-  this.http
-    .get(`${API_CONFIG.baseUrl}/dashboard/export`, {
-      params: { ...this.est.parametros(), formato },
-      responseType: 'blob',
-    })
-    .subscribe({
-      next: (archivo) => {
-        descargar(archivo, nombreArchivo('sivcr-dashboard', formato));
-        this.exportando.set(false);
-      },
-      error: () => {
-        this.avisos.error('No se pudo generar el reporte. Intente de nuevo.');
-        this.exportando.set(false);
-      },
-    });
-}
-  
+  protected cerrarMenuSiClicFuera(evento: Event): void {
+    if (!this.menuExportar()) return;
+    const zona = this.elemento.nativeElement.querySelector('.exportar');
+    if (zona && !zona.contains(evento.target as Node)) this.menuExportar.set(false);
+  }
+
+  protected exportar(formato: FormatoExportacion): void {
+    this.menuExportar.set(false);
+    this.exportando.set(true);
+    this.http
+      .get(`${API_CONFIG.baseUrl}/dashboard/export`, {
+        params: { ...this.est.parametros(), formato },
+        responseType: 'blob',
+      })
+      .subscribe({
+        next: (archivo) => {
+          descargar(archivo, nombreArchivo('sivcr-dashboard', formato));
+          this.exportando.set(false);
+        },
+        error: () => {
+          this.avisos.error('No se pudo generar el reporte. Intente de nuevo.');
+          this.exportando.set(false);
+        },
+      });
+  }
+
+  // ---------- Guardar filtros ----------
+
+  protected abrirGuardar(): void {
+    this.errorGuardar.set(null);
+    this.dialogoGuardar.set(true);
+  }
+
+  protected async guardarConsulta(nombre: string): Promise<void> {
+    this.guardando.set(true);
+    this.errorGuardar.set(null);
+    try {
+      await firstValueFrom(this.consultasApi.guardar(nombre, aCriteriosDelPanel(this.f())));
+      this.dialogoGuardar.set(false);
+      this.avisos.exito(`Consulta «${nombre}» guardada. La encuentra en el Historial de consultas.`);
+    } catch (e) {
+      this.errorGuardar.set(mensajeDeError(e));
+    } finally {
+      this.guardando.set(false);
+    }
+  }
 }

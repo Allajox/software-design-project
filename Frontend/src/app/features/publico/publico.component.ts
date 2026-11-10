@@ -1,7 +1,9 @@
 import { httpResource } from '@angular/common/http';
-import { Component, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { API_CONFIG } from '../../core/config/api.config';
+import { ROLES_DASHBOARD } from '../../core/config/roles.config';
+import { AuthService } from '../../core/services/auth.service';
 import { ItemConteo } from '../../core/services/estadisticas.service';
 import { fmtEntero, fmtPct } from '../../shared/utils/formato';
 import { BarrasRankeadasComponent, FilaBarra } from '../dashboard/graficos/barras-rankeadas.component';
@@ -25,8 +27,9 @@ const aFilas = (items: readonly ItemConteo[] | undefined): FilaBarra[] =>
   }));
 
 /**
- * Vista pública (HU 18): cifras generales de siniestralidad, sin iniciar sesión.
- * Solo muestra totales agrupados; no hay filtros ni registros individuales.
+ * Vista pública (HU 18/19): cifras generales de siniestralidad, sin iniciar sesión («Ingresar sin Credenciales» del login).
+ * Solo muestra totales agrupados; no hay filtros ni registros individuales. Quien sí tiene sesión (el consultor público
+ * llega aquí) ve su nombre y puede cerrarla; quien tiene dashboard, volver a él.
  */
 @Component({
   selector: 'app-publico',
@@ -36,7 +39,15 @@ const aFilas = (items: readonly ItemConteo[] | undefined): FilaBarra[] =>
       <header>
         <h1>Siniestralidad vial en Costa Rica</h1>
         <p>Cifras generales de siniestros viales registrados por COSEVI.</p>
-        <a routerLink="/login">Ingresar al sistema</a>
+        <p class="acceso">
+          @if (usuario(); as u) {
+            <span>Sesión de <strong>{{ u.nombre }}</strong></span>
+            @if (tienePanel()) { <a routerLink="/dashboard">Ir al panel de indicadores</a> }
+            <button type="button" (click)="salir()">Cerrar sesión</button>
+          } @else {
+            <a routerLink="/login">Ingresar al sistema</a>
+          }
+        </p>
       </header>
 
       @if (recurso.error()) {
@@ -69,7 +80,10 @@ const aFilas = (items: readonly ItemConteo[] | undefined): FilaBarra[] =>
     .publico { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 3rem; color: var(--tinta); }
     h1 { margin: 0; font-size: 1.6rem; }
     header p { margin: 0.3rem 0 0.6rem; color: var(--tinta-2); }
-    header a { color: var(--azul-claro); font-size: 0.9rem; }
+    header a, .acceso button { color: var(--azul-claro); font-size: 0.9rem; }
+    .acceso { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; margin: 0; font-size: 0.9rem; }
+    .acceso button { padding: 0; font: inherit; font-size: 0.9rem; background: none; border: 0; text-decoration: underline; cursor: pointer; }
+    .acceso button:focus-visible, header a:focus-visible { outline: 2px solid var(--azul-claro); outline-offset: 2px; }
     .total { margin: 1.6rem 0 0.4rem; font-size: 1.1rem; }
     .total strong { font-size: 2rem; color: var(--azul); font-variant-numeric: tabular-nums; }
     section { margin-top: 1.6rem; padding: 1rem 1.1rem; background: #fff; border: 1px solid var(--borde); border-radius: 12px; }
@@ -78,6 +92,12 @@ const aFilas = (items: readonly ItemConteo[] | undefined): FilaBarra[] =>
   `,
 })
 export class PublicoComponent {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  protected readonly usuario = this.auth.usuario;
+  protected readonly tienePanel = computed(() => this.auth.tieneRol(ROLES_DASHBOARD));
+
   protected readonly recurso = httpResource<ResumenPublico>(() => `${API_CONFIG.baseUrl}/public/summary`);
 
   private readonly datos = computed(() => (this.recurso.hasValue() ? this.recurso.value() : undefined));
@@ -86,4 +106,9 @@ export class PublicoComponent {
   protected readonly provincias = computed(() => aFilas(this.datos()?.porProvincia));
   protected readonly severidades = computed(() => aFilas(this.datos()?.porSeveridad));
   protected readonly franjas = computed(() => aFilas(this.datos()?.porFranja));
+
+  protected salir(): void {
+    this.auth.logout();
+    void this.router.navigate(['/login']);
+  }
 }
