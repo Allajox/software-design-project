@@ -4,17 +4,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import model.ConfigRepository;
+import model.ConfigStore;
+import model.DashboardRepository;
 import model.FilterRepository;
 import model.PasswordHasher;
 import model.SinisterRepository;
+import model.StatsRepository;
+import model.UserAdminRepository;
 import model.UserRepository;
 import model.VictimRepository;
+import model.export.CsvReportWriter;
+import model.export.ExcelReportWriter;
+import model.export.PdfReportWriter;
+import model.interfaces.IDashboardManager;
+import model.interfaces.IReportManager;
+import model.interfaces.IStatsManager;
 import model.ingestion.GeoBounds;
 import model.ingestion.IngestionLogRepository;
 import model.ingestion.IngestionManager;
@@ -24,8 +36,14 @@ import model.ingestion.profile.MappingProfile;
 import model.ingestion.profile.MappingProfileCatalog;
 import model.ingestion.profile.ProfileParser;
 import model.managers.AuthManager;
+import model.managers.ConfigManager;
+import model.managers.DashboardManager;
+import model.managers.DashboardReportManager;
 import model.managers.FilterManager;
 import model.managers.HistoryManager;
+import model.managers.ReportManager;
+import model.managers.StatsManager;
+import model.managers.UserManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -104,5 +122,39 @@ public class AppConfig {
     @Bean
     public HistoryManager historyManager(FilterRepository filtros) {
         return new HistoryManager(filtros);
+    }
+
+    @Bean
+    public IStatsManager statsManager(StatsRepository estadisticas, VictimRepository victimas,
+                                      ConfigRepository configuracion) {
+        return new StatsManager(estadisticas, victimas, configuracion);
+    }
+
+    @Bean
+    public IDashboardManager dashboardManager(DashboardRepository repositorio, ConfigRepository configuracion) {
+        return new DashboardManager(repositorio, configuracion);
+    }
+
+    @Bean
+    public DashboardReportManager dashboardReportManager(IDashboardManager panel) {
+        return new DashboardReportManager(panel, Clock.system(ZoneId.of("America/Costa_Rica")));
+    }
+
+    @Bean
+    public UserManager userManager(UserAdminRepository usuarios, PasswordHasher hasher, AuthManager auth) {
+        return new UserManager(usuarios, hasher, auth);
+    }
+
+    @Bean
+    public ConfigManager configManager(ConfigStore almacen) {
+        return new ConfigManager(almacen);
+    }
+
+    /** La fecha del reporte es la de Costa Rica, no la del servidor (que suele estar en UTC). */
+    @Bean
+    public IReportManager reportManager(FilterManager filtros, IStatsManager estadisticas) {
+        return new ReportManager(filtros, estadisticas,
+                List.of(new CsvReportWriter(), new ExcelReportWriter(), new PdfReportWriter()),
+                Clock.system(ZoneId.of("America/Costa_Rica")));
     }
 }
