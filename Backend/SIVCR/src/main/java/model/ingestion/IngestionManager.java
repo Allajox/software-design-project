@@ -16,11 +16,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import model.User;
 import model.ingestion.parser.FileParser;
 import model.ingestion.parser.FileParserFactory;
 import model.ingestion.profile.MappingProfile;
 import model.ingestion.profile.MappingProfileCatalog;
-import model.ingestion.profile.RecordKind;
 
 /**
  * Orquesta la ingesta de un archivo: formato -> perfil de la fuente -> parseo por flujo -> validación fila a fila
@@ -48,17 +48,14 @@ public class IngestionManager {
     private final FileParserFactory fabricaParsers;
     private final MappingProfileCatalog perfiles;
     private final IngestionLogRepository logs;
-    private final QualityReportRepository reportes;
-    private final RecordRepository siniestros;
-    private final RecordRepository victimas;
+    private final RecordRepository registros;
     private final GeoBounds limites;
     private final int tamanoLote;
     private final int maxErrores;
     private final Set<String> enProceso = ConcurrentHashMap.newKeySet();
 
     public IngestionManager(FileParserFactory fabricaParsers, MappingProfileCatalog perfiles,
-                            IngestionLogRepository logs, QualityReportRepository reportes,
-                            RecordRepository siniestros, RecordRepository victimas,
+                            IngestionLogRepository logs, RecordRepository registros,
                             GeoBounds limites, int tamanoLote, int maxErrores) {
         if (tamanoLote < 1 || maxErrores < 0) {
             throw new IllegalArgumentException("tamanoLote debe ser >= 1 y maxErrores >= 0");
@@ -66,15 +63,13 @@ public class IngestionManager {
         this.fabricaParsers = Objects.requireNonNull(fabricaParsers);
         this.perfiles = Objects.requireNonNull(perfiles);
         this.logs = Objects.requireNonNull(logs);
-        this.reportes = Objects.requireNonNull(reportes);
-        this.siniestros = Objects.requireNonNull(siniestros);
-        this.victimas = Objects.requireNonNull(victimas);
+        this.registros = Objects.requireNonNull(registros);
         this.limites = Objects.requireNonNull(limites);
         this.tamanoLote = tamanoLote;
         this.maxErrores = maxErrores;
     }
 
-    public IngestionLog cargarArchivo(UploadedFile archivo, DataSource fuente, UserRef usuario) {
+    public IngestionLog cargarArchivo(UploadedFile archivo, DataSource fuente, User usuario) {
         Objects.requireNonNull(archivo, "archivo");
         Objects.requireNonNull(fuente, "fuente");
         Objects.requireNonNull(usuario, "usuario");
@@ -92,7 +87,7 @@ public class IngestionManager {
 
         // El registro se crea primero como FALLIDA: si todo se interrumpe, la carga queda trazada igual.
         IngestionLog log = logs.save(new IngestionLog(null, LocalDateTime.now(), fuente, LoadResult.FALLIDA,
-                usuario.id(), usuario.nombre(), nombre, null, "Carga en proceso.", checksum, null));
+                usuario.id(), usuario.name(), nombre, null, "Carga en proceso.", checksum, null));
 
         if (!enProceso.add(checksum)) {
             return cerrarFallida(log, "Este mismo archivo ya se está procesando en otra carga.", false);
@@ -114,7 +109,7 @@ public class IngestionManager {
     }
 
     public Optional<QualityReport> reporteCalidad(long idCarga) {
-        return reportes.findByIdCarga(idCarga);
+        return logs.findReporte(idCarga);
     }
 
     // ------------------------------------------------------------------
@@ -170,7 +165,6 @@ public class IngestionManager {
     private IngestionLog ejecutar(UploadedFile archivo, FileParser parser, MappingProfile perfil, IngestionLog log)
             throws IOException {
         DataValidator validador = new DataValidator(perfil, limites);
-        RecordRepository destino = perfil.tipo() == RecordKind.SINISTER ? siniestros : victimas;
         long logId = log.id();
         Acumulador acc = new Acumulador(maxErrores);
         List<NormalizedRecord> lote = new ArrayList<>(tamanoLote);
@@ -190,13 +184,13 @@ public class IngestionManager {
             if (r.estado() != QualityStatus.CORRUPTO) {
                 lote.add(new NormalizedRecord(logId, fila.fila(), perfil.tipo(), r.estado(), r.campos()));
                 if (lote.size() >= tamanoLote) {
-                    destino.saveAll(List.copyOf(lote));
+                    registros.saveAll(List.copyOf(lote));
                     lote.clear();
                 }
             }
         });
         if (!lote.isEmpty()) {
-            destino.saveAll(List.copyOf(lote));
+            registros.saveAll(List.copyOf(lote));
             lote.clear();
         }
 
@@ -211,7 +205,7 @@ public class IngestionManager {
         LoadResult resultado = guardados == 0 ? LoadResult.FALLIDA
                 : (conteos.incompletos() == 0 && conteos.corruptos() == 0 ? LoadResult.EXITOSA : LoadResult.PARCIAL);
 
-        reportes.save(new QualityReport(logId, conteos.validos(), conteos.incompletos(), conteos.corruptos(),
+        logs.guardarReporte(new QualityReport(logId, conteos.validos(), conteos.incompletos(), conteos.corruptos(),
                 conteos.omitidos(), acc.errores));
         return logs.save(log.conResultado(resultado, mensajeFinal(resultado, conteos), conteos));
     }
@@ -233,15 +227,14 @@ public class IngestionManager {
         long id = log.id();
         if (limpiar) {
             try {
-                siniestros.deleteByIngestionLogId(id);
-                victimas.deleteByIngestionLogId(id);
+                registros.deleteByIngestionLogId(id);
             } catch (RuntimeException e) {
                 LOG.log(System.Logger.Level.ERROR, "No se pudo limpiar la carga {0}: {1}", id, e.getClass().getName());
             }
         }
         IngestionLog cerrada = log.conResultado(LoadResult.FALLIDA, mensaje, QualityCounts.VACIO);
         try {
-            reportes.save(new QualityReport(id, 0, 0, 0, 0, List.of(mensaje)));
+            logs.guardarReporte(new QualityReport(id, 0, 0, 0, 0, List.of(mensaje)));
             return logs.save(cerrada);
         } catch (RuntimeException e) {
             LOG.log(System.Logger.Level.ERROR, "No se pudo registrar el cierre de la carga {0}: {1}", id,
