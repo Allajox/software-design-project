@@ -18,9 +18,9 @@ public interface FilterCriteriaBuilder {
     
     void setRuta(String r);
     
-    void setAnio(int a);
+    void setAnio(Integer a);
     
-    void setMes(int m);
+    void setMes(Integer m);
     
     void setDia(Day d);
     
@@ -33,6 +33,10 @@ public interface FilterCriteriaBuilder {
     void setClima(Climate c);
     
     void setCalzada(RoadStatus c);
+    
+    void setEdad(Integer min, Integer max);
+    
+    void setGenero(Gender g);
     
     void reset();
     
