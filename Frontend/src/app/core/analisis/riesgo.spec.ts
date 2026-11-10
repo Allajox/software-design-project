@@ -33,13 +33,13 @@ const sin = (extra: Partial<Siniestro> = {}): Siniestro => ({
   distrito: 'San Rafael',
   ruta: 'Ruta 27',
   kilometro: 10,
-  vehiculo: 'Particular',
-  severidad: 'Leve',
+  vehiculo: 'Automóvil',
+  severidad: 'Solo heridos leves',
   fallecidos: 0,
   heridosGraves: 0,
   heridosLeves: 1,
-  clima: 'Despejado',
-  calzada: 'Seca',
+  clima: 'Buen tiempo',
+  calzada: 'Buena',
   senalizacion: true,
   edad: '26-40',
   genero: 'Masculino',
@@ -48,7 +48,7 @@ const sin = (extra: Partial<Siniestro> = {}): Siniestro => ({
   ...extra,
 });
 
-const BASE: Escenario = { clima: 'Despejado', calzada: 'Seca', franja: 'Mañana' };
+const BASE: Escenario = { clima: 'Buen tiempo', calzada: 'Buena', franja: 'Mañana' };
 
 describe('Álgebra y regresión', () => {
   it('invertir devuelve la inversa y detecta matrices singulares', () => {
@@ -124,9 +124,9 @@ describe('Exposición', () => {
   });
   it('valores inválidos o un grupo en cero vuelven al respaldo', () => {
     const roto = copiarExposicion(EXPOSICION_POR_DEFECTO);
-    roto.clima = { 'Despejado': 0, 'Nublado': 0, 'Lluvia': 0, 'Lluvia fuerte': 0, 'Neblina': Number.NaN };
+    roto.clima = { 'Buen tiempo': 0, 'Lluvia': 0, 'Neblina': 0, 'Lluvia con neblina': Number.NaN };
     const n = normalizarExposicion(roto);
-    expect(n.clima['Despejado']).toBeCloseTo(0.38, 12);
+    expect(n.clima['Buen tiempo']).toBeCloseTo(0.87, 12);
   });
   it('ninguna condición baja del mínimo aunque se ponga 0', () => {
     const e = copiarExposicion(EXPOSICION_POR_DEFECTO);
@@ -142,14 +142,16 @@ describe('Exposición', () => {
 });
 
 describe('Escenarios', () => {
-  it('hay 60 combinaciones distintas', () => {
+  it('hay 96 combinaciones distintas', () => {
     const todas = todasLasCombinaciones();
     expect(todas.length).toBe(CLIMAS.length * CALZADAS.length * FRANJAS.length);
-    expect(new Set(todas.map((e) => `${e.clima}${e.calzada}${e.franja}`)).size).toBe(60);
+    expect(new Set(todas.map((e) => `${e.clima}${e.calzada}${e.franja}`)).size).toBe(96);
   });
   it('el vector de diseño tiene la constante y una sola categoría activa por factor', () => {
-    expect(vectorEscenario(BASE)).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    const v = vectorEscenario({ clima: 'Lluvia', calzada: 'Húmeda', franja: 'Noche' });
+    // una columna de constante + (categorías - 1) por cada factor; la categoría de referencia no suma
+    const ceros = CLIMAS.length + CALZADAS.length + FRANJAS.length - 3;
+    expect(vectorEscenario(BASE)).toEqual([1, ...Array<number>(ceros).fill(0)]);
+    const v = vectorEscenario({ clima: 'Lluvia', calzada: 'Huecos', franja: 'Noche' });
     expect(v[0]).toBe(1);
     expect(v.reduce((a, b) => a + b, 0)).toBe(4);
   });
@@ -176,7 +178,7 @@ describe('Escenarios', () => {
   });
 });
 
-/** Datos con efectos conocidos: la lluvia fuerte y la madrugada elevan la gravedad; la noche y la lluvia, la frecuencia */
+/** Datos con efectos conocidos: la lluvia con neblina y la madrugada elevan la gravedad; la noche, la frecuencia */
 function datosConEfectos(cantidad = 6000): Siniestro[] {
   const rng = crearRng(99);
   const pick = <T,>(pesos: readonly (readonly [T, number])[]): T => {
@@ -189,13 +191,13 @@ function datosConEfectos(cantidad = 6000): Siniestro[] {
     return pesos[pesos.length - 1][0];
   };
   return Array.from({ length: cantidad }, () => {
-    // frecuencia: Noche y Lluvia fuerte aparecen más de lo que su exposición supone
+    // frecuencia: la Noche aparece más de lo que su exposición supone
     const franja = pick([['Madrugada', 14], ['Mañana', 20], ['Tarde', 26], ['Noche', 40]] as const);
-    const clima = pick([['Despejado', 30], ['Nublado', 25], ['Lluvia', 25], ['Lluvia fuerte', 14], ['Neblina', 6]] as const);
-    const calzada = clima === 'Despejado' || clima === 'Nublado' ? 'Seca' : 'Húmeda';
-    const pGrave = 0.2 + (franja === 'Madrugada' ? 0.25 : 0) + (clima === 'Lluvia fuerte' ? 0.2 : 0);
+    const clima = pick([['Buen tiempo', 55], ['Lluvia', 25], ['Lluvia con neblina', 14], ['Neblina', 6]] as const);
+    const calzada = clima === 'Buen tiempo' ? 'Buena' : 'Resbaladiza';
+    const pGrave = 0.2 + (franja === 'Madrugada' ? 0.25 : 0) + (clima === 'Lluvia con neblina' ? 0.2 : 0);
     const u = rng();
-    const severidad = u < pGrave * 0.25 ? 'Fallecido' : u < pGrave ? 'Grave' : 'Leve';
+    const severidad = u < pGrave * 0.25 ? 'Fallecido' : u < pGrave ? 'Con muertos o graves' : 'Solo heridos leves';
     return sin({ franja, clima: clima as Clima, calzada, severidad, fallecidos: severidad === 'Fallecido' ? 1 : 0 });
   });
 }
@@ -230,9 +232,9 @@ describe('entrenarModelo / estimar', () => {
     const madrugada = estimar(modelo, { ...BASE, franja: 'Madrugada' });
     const manana = estimar(modelo, BASE);
     expect(madrugada.pGrave).toBeGreaterThan(manana.pGrave + 0.1);
-    const fuerte = estimar(modelo, { ...BASE, clima: 'Lluvia fuerte', calzada: 'Húmeda' });
-    const despejado = estimar(modelo, BASE);
-    expect(fuerte.pGrave).toBeGreaterThan(despejado.pGrave + 0.1);
+    const fuerte = estimar(modelo, { ...BASE, clima: 'Lluvia con neblina', calzada: 'Resbaladiza' });
+    const buenTiempo = estimar(modelo, BASE);
+    expect(fuerte.pGrave).toBeGreaterThan(buenTiempo.pGrave + 0.1);
   });
 
   it('la frecuencia relativa descuenta la exposición: la noche pesa más que la mañana', () => {
@@ -245,9 +247,9 @@ describe('entrenarModelo / estimar', () => {
 
   it('con una exposición distinta cambian las frecuencias, no las gravedades', () => {
     const e2 = copiarExposicion(EXPOSICION_POR_DEFECTO);
-    e2.clima['Lluvia fuerte'] = 25; // «llueve fuerte» 5 veces más tiempo de lo supuesto
+    e2.clima['Lluvia con neblina'] = 25; // «llueve con neblina» mucho más tiempo de lo supuesto
     const otro = entrenarModelo(datos, e2)!;
-    const esc: Escenario = { clima: 'Lluvia fuerte', calzada: 'Húmeda', franja: 'Tarde' };
+    const esc: Escenario = { clima: 'Lluvia con neblina', calzada: 'Resbaladiza', franja: 'Tarde' };
     expect(estimar(otro, esc).frecuencia).toBeLessThan(estimar(modelo, esc).frecuencia);
     expect(estimar(otro, esc).pGrave).toBeCloseTo(estimar(modelo, esc).pGrave, 10);
   });
@@ -269,16 +271,16 @@ describe('entrenarModelo / estimar', () => {
 
   it('reporta el soporte (siniestros observados) de cada combinación', () => {
     const e = estimar(modelo, { ...BASE, franja: 'Noche' });
-    const reales = datos.filter((s) => s.clima === 'Despejado' && s.calzada === 'Seca' && s.franja === 'Noche').length;
+    const reales = datos.filter((s) => s.clima === 'Buen tiempo' && s.calzada === 'Buena' && s.franja === 'Noche').length;
     expect(e.soporte).toBe(reales);
-    expect(estimar(modelo, { clima: 'Despejado', calzada: 'Derrumbe', franja: 'Noche' }).soporte).toBe(0);
+    expect(estimar(modelo, { clima: 'Buen tiempo', calzada: 'Hundimientos', franja: 'Noche' }).soporte).toBe(0);
   });
 
   it('curvaPorFactor varía solo ese factor', () => {
-    const esc: Escenario = { clima: 'Lluvia', calzada: 'Húmeda', franja: 'Noche' };
+    const esc: Escenario = { clima: 'Lluvia', calzada: 'Resbaladiza', franja: 'Noche' };
     const curva = curvaPorFactor(modelo, esc, 'clima');
     expect(curva.map((c) => c.escenario.clima)).toEqual([...CLIMAS]);
-    expect(curva.every((c) => c.escenario.calzada === 'Húmeda' && c.escenario.franja === 'Noche')).toBe(true);
+    expect(curva.every((c) => c.escenario.calzada === 'Resbaladiza' && c.escenario.franja === 'Noche')).toBe(true);
     expect(curva[CLIMAS.indexOf('Lluvia')].indice).toBeCloseTo(estimar(modelo, esc).indice, 12);
     expect(curvaPorFactor(modelo, esc, 'franja').length).toBe(FRANJAS.length);
     expect(curvaPorFactor(modelo, esc, 'calzada').length).toBe(CALZADAS.length);
@@ -324,11 +326,11 @@ describe('Datos de ejemplo', () => {
 
   it('encuentra los efectos que el generador sembró en la gravedad', () => {
     // el generador multiplica la gravedad en madrugada (×1,7) y con clima adverso (×1,3);
-    // una calzada con derrumbe tiene muy pocos casos, así que no se prueba: su estimación es muy imprecisa
+    // una calzada con pocos casos no se prueba: su estimación es muy imprecisa
     const madrugada = estimar(modelo, { ...BASE, franja: 'Madrugada' }).pGrave;
     const manana = estimar(modelo, BASE).pGrave;
     expect(madrugada).toBeGreaterThan(manana);
-    const adverso = estimar(modelo, { clima: 'Lluvia fuerte', calzada: 'Húmeda', franja: 'Mañana' }).pGrave;
+    const adverso = estimar(modelo, { clima: 'Lluvia', calzada: 'Resbaladiza', franja: 'Mañana' }).pGrave;
     expect(adverso).toBeGreaterThan(manana);
   });
 
@@ -350,17 +352,17 @@ describe('Lectura honesta de una estimación', () => {
     expect(compararConReferencia(ic(0.5, 1), 1)).toBe('similar');
   });
 
-  it('con datos de ejemplo, la lluvia nocturna sobre calzada húmeda es claramente más frecuente que el promedio', () => {
+  it('con datos de ejemplo, la lluvia nocturna sobre calzada resbaladiza es claramente más frecuente que el promedio', () => {
     const datos = generarSiniestros();
     const modelo = entrenarModelo(datos)!;
-    const lectura = leerEstimacion(modelo, estimar(modelo, { clima: 'Lluvia', calzada: 'Húmeda', franja: 'Noche' }));
+    const lectura = leerEstimacion(modelo, estimar(modelo, { clima: 'Lluvia', calzada: 'Resbaladiza', franja: 'Noche' }));
     expect(lectura.frecuencia).toBe('mayor');
   });
 
   it('estimacionesATabla trae una fila por combinación y tantas celdas como columnas', () => {
     const modelo = entrenarModelo(generarSiniestros())!;
     const tabla = estimacionesATabla(estimarTodas(modelo));
-    expect(tabla.filas).toHaveLength(60);
+    expect(tabla.filas).toHaveLength(96);
     for (const f of tabla.filas) expect(f).toHaveLength(tabla.columnas.length);
     // los porcentajes salen en 0-100, no en 0-1
     const iPct = tabla.columnas.indexOf('% grave o mortal');
@@ -373,7 +375,7 @@ describe('Lectura honesta de una estimación', () => {
 
 describe('Redacción de una estimación', () => {
   const modelo = entrenarModelo(generarSiniestros())!;
-  const base = estimar(modelo, { clima: 'Despejado', calzada: 'Seca', franja: 'Mañana' });
+  const base = estimar(modelo, { clima: 'Buen tiempo', calzada: 'Buena', franja: 'Mañana' });
   const conIC = (cambios: Partial<typeof base>) => ({ ...base, ...cambios });
 
   it('cuando todo es mayor, lo dice con cifras', () => {
@@ -382,7 +384,7 @@ describe('Redacción de una estimación', () => {
     }));
     expect(frase).toContain('veces la frecuencia promedio');
     expect(frase).toContain('más probable que sean graves');
-    expect(frase).toContain('Despejado');
+    expect(frase).toContain('Buen tiempo');
   });
 
   it('si ni la frecuencia ni la gravedad se distinguen del promedio, no inventa diferencias', () => {
